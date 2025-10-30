@@ -1,0 +1,15 @@
+# This Dockerfile pulls up the Frontend using Vite's dev server
+# For actual live reloading (since this just copies) a Docker volume is used.
+
+FROM node:22
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host"]
