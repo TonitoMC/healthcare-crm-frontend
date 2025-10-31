@@ -23,6 +23,7 @@ export default defineConfig({
       "@assets": fileURLToPath(new URL("./src/assets", import.meta.url)),
       "@layouts": fileURLToPath(new URL("./src/layouts", import.meta.url)),
       "@config": fileURLToPath(new URL("./src/config", import.meta.url)),
+      "@plugins": fileURLToPath(new URL("./src/plugins", import.meta.url)),
       "@services": fileURLToPath(new URL("./src/services", import.meta.url)),
       "@composables": fileURLToPath(
         new URL("./src/composables", import.meta.url),
