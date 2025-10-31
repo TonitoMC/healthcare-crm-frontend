@@ -6,7 +6,7 @@ import DefaultLayout from "@layouts/DefaultLayout.vue";
 
 const routes = [
   {
-    path: "/",
+    path: "/login",
     name: "Login",
     component: Login,
   },
@@ -18,11 +18,18 @@ const routes = [
         path: "dashboard",
         name: "Dashboard",
         component: Dashboard,
+        meta: {
+          requiresAuth: true,
+        },
       },
       {
         path: "calendar",
         name: "Calendar",
         component: Calendar,
+        meta: {
+          requiresAuth: true,
+          permissions: ["view-patient-page"],
+        },
       },
     ],
   },
