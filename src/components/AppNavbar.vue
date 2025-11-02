@@ -7,18 +7,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { useRouter } from "vue-router";
 import TabMenu from "primevue/tabmenu";
 import { menuItems } from "@config/menuItems.js";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
-const userRole = ref("admin");
+const auth = useAuthStore();
 
-// Filter items by role
-const visibleMenu = computed(() =>
-  menuItems.filter((item) => item.roles.includes(userRole.value)),
-);
+// Filter items by user's roles from the auth store
+const visibleMenu = computed(() => {
+  const userRoles = Array.isArray(auth.roles) ? auth.roles : [];
+  return menuItems.filter((item) =>
+    Array.isArray(item.roles) ? item.roles.some((r) => userRoles.includes(r)) : true,
+  );
+});
 
 // Map to TabMenu format
 const menuModel = computed(() =>

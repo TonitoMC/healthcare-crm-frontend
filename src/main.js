@@ -20,15 +20,18 @@ const app = createApp(App);
 
 const pinia = createPinia();
 
+app.use(pinia);
+
+// Restore or establish session before setting up router guards
+import { useAuthStore } from "@/stores/auth";
+const auth = useAuthStore();
+auth.restoreSession();
+auth.ensureDevSession();
+
 setupAuthGuard(router);
 app.use(router);
-app.use(pinia);
 app.use(PrimeVue, { theme: { preset: Aura } });
 app.use(ToastService);
 
 app.config.devtools = true;
 app.mount("#app");
-
-import { useAuthStore } from "@/stores/auth";
-const auth = useAuthStore();
-auth.restoreSession();

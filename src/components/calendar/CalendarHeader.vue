@@ -35,12 +35,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import Button from "primevue/button";
 import Dropdown from "primevue/dropdown";
-
-const currentView = ref("month");
-const currentDate = ref(new Date());
+import { currentView, currentDate } from "@/composables/useCalendarState";
 
 const viewOptions = [
   { label: "Mes", value: "month" },
@@ -50,9 +48,9 @@ const viewOptions = [
 // Capitalize helper (handles accents safely)
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// 🧭 Dynamic subtitle label
+// 🧭 Dynamic subtitle label (uses shared state)
 const displayLabel = computed(() => {
-  const date = currentDate.value;
+  const date = currentDate.value instanceof Date ? currentDate.value : new Date(currentDate.value);
   const monthName = new Intl.DateTimeFormat("es-ES", {
     month: "long",
     year: "numeric",

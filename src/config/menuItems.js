@@ -18,6 +18,12 @@ export const menuItems = [
     roles: ["admin", "doctor"],
   },
   {
+    label: "Roles & Permisos",
+    icon: "pi pi-shield",
+    to: "/app/admin",
+    roles: ["admin"],
+  },
+  {
     label: "Perfil",
     icon: "pi pi-user",
     to: "/app/perfil",
@@ -44,7 +50,7 @@ export const configMenuItems = [
     roles: ["admin", "doctor", "assistant"],
   },
   {
-    label: "Panel Admin",
+    label: "Roles & Permisos",
     icon: "pi pi-shield",
     to: "/app/admin",
     roles: ["admin"],

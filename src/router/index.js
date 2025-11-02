@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from "vue-router";
 import Login from "@views/Login.vue";
 import Dashboard from "@views/Dashboard.vue";
 import Calendar from "@views/Calendar.vue";
+import AdminRoles from "@views/AdminRoles.vue";
+const Profile = () => import("@/views/Profile.vue");
 import DefaultLayout from "@layouts/DefaultLayout.vue";
 
 const routes = [
@@ -28,7 +30,23 @@ const routes = [
         component: Calendar,
         meta: {
           requiresAuth: true,
-          permissions: ["view-patient-page"],
+        },
+      },
+      {
+        path: "perfil",
+        name: "Profile",
+        component: Profile,
+        meta: {
+          requiresAuth: true,
+        },
+      },
+      {
+        path: "admin",
+        name: "AdminRoles",
+        component: AdminRoles,
+        meta: {
+          requiresAuth: true,
+          roles: ["admin"],
         },
       },
     ],
