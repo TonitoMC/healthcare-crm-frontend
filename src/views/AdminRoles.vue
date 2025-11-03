@@ -19,7 +19,7 @@
                 <div class="flex align-items-center gap-2">
                   <span class="hidden md:inline text-sm text-color-secondary">Buscar</span>
                   <InputText v-model="filters.roles" placeholder="Filtrar..." class="w-12rem md:w-16rem" />
-                  <Button icon="pi pi-plus" label="Nuevo Rol" size="small" @click="openCreateRoleDialog" />
+                  <Button v-if="auth.roles.includes('admin')" icon="pi pi-plus" label="Nuevo Rol" size="small" @click="openCreateRoleDialog" />
                 </div>
               </div>
             </template>
@@ -58,6 +58,7 @@
                       @click="openPermissionsDialog(data)"
                     />
                     <Button
+                      v-if="auth.roles.includes('admin')"
                       icon="pi pi-trash"
                       severity="danger"
                       size="small"
@@ -81,7 +82,7 @@
                   <div class="flex align-items-center gap-2">
                     <span class="hidden md:inline text-sm text-color-secondary">Buscar</span>
                     <InputText v-model="filters.permissions" placeholder="Filtrar..." class="w-12rem md:w-16rem" />
-                    <Button icon="pi pi-plus" label="Nuevo Permiso" size="small" @click="openCreatePermissionDialog" />
+                    <Button v-if="auth.roles.includes('admin')" icon="pi pi-plus" label="Nuevo Permiso" size="small" @click="openCreatePermissionDialog" />
                   </div>
                 </div>
               </template>
@@ -102,6 +103,7 @@
                   <Column header="Acciones" style="width: 1%; white-space: nowrap">
                     <template #body="{ data }">
                       <Button
+                        v-if="auth.roles.includes('admin')"
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
@@ -148,6 +150,7 @@
                   <Column header="Acciones" style="width: 1%; white-space: nowrap">
                     <template #body="{ data }">
                       <Button
+                        v-if="auth.roles.includes('admin')"
                         icon="pi pi-user-edit"
                         label="Asignar Roles"
                         size="small"
@@ -165,27 +168,16 @@
       </div>
     </div>
 
-    <!-- Dialog: Edit Role Permissions -->
-    <Dialog v-model:visible="dialogs.permissions" modal header="Permisos del Rol" :style="{ width: '32rem' }">
-      <div class="flex flex-column gap-3">
-        <div class="text-sm text-color-secondary">
-          Rol: <span class="font-medium">{{ currentRole?.nombre }}</span>
-        </div>
-        <MultiSelect
-          v-model="selectedPermissionIds"
-          :options="permissions"
-          optionLabel="nombre"
-          optionValue="id"
-          placeholder="Selecciona permisos"
-          display="chip"
-          class="w-full"
-        />
-        <div class="flex justify-content-end gap-2">
-          <Button label="Cancelar" severity="secondary" outlined @click="closePermissionsDialog" />
-          <Button label="Guardar" icon="pi pi-save" @click="saveRolePermissions" />
-        </div>
-      </div>
-    </Dialog>
+    <!-- Dialog: Edit Role Permissions (separated component) -->
+    <RolePermissionsModal
+      :modelValue="dialogs.permissions"
+      @update:modelValue="val => (dialogs.permissions = val)"
+      :currentRole="currentRole"
+      :permissions="permissions"
+      :selected="selectedPermissionIds"
+      @save="payload => { selectedPermissionIds.value = payload; saveRolePermissions(); }"
+      @close="closePermissionsDialog"
+    />
 
     <!-- Dialog: Assign Roles to User -->
     <Dialog v-model:visible="dialogs.assignRoles" modal header="Asignar Roles" :style="{ width: '32rem' }">
@@ -247,16 +239,15 @@
       </div>
     </Dialog>
 
-    <!-- Dialog: Confirm Delete -->
-    <Dialog v-model:visible="dialogs.confirm" modal :header="confirmDialog.title" :style="{ width: '26rem' }">
-      <div class="flex flex-column gap-3">
-        <div>{{ confirmDialog.message }}</div>
-        <div class="flex justify-content-end gap-2">
-          <Button label="Cancelar" severity="secondary" outlined @click="closeConfirm" />
-          <Button label="Eliminar" severity="danger" icon="pi pi-trash" @click="confirmDelete" />
-        </div>
-      </div>
-    </Dialog>
+    <!-- Dialog: Confirm Delete (separated component) -->
+    <ConfirmDeleteModal
+      :modelValue="dialogs.confirm"
+      @update:modelValue="val => (dialogs.confirm = val)"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      @confirm="confirmDelete"
+      @close="closeConfirm"
+    />
 
     <Toast />
   </div>
@@ -274,11 +265,16 @@ import Tag from "primevue/tag";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import InputText from "primevue/inputtext";
+import RolePermissionsModal from '@/components/admin/RolePermissionsModal.vue';
+import ConfirmDeleteModal from '@/components/admin/ConfirmDeleteModal.vue';
+import { useAuthStore } from '@/stores/auth';
 
 import { RoleService } from "@/services/roleService";
 import { UserService } from "@/services/userService";
 
 const toast = useToast();
+
+const auth = useAuthStore();
 
 const roles = ref([]);
 const permissions = ref([]);

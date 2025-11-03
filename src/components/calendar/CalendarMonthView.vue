@@ -100,22 +100,69 @@ function openDay(cell) {
   font-weight: 600;
 }
 
+/* make weekday header visually separated */
+.month-weekdays {
+  background: transparent;
+}
+.month-weekdays .weekday {
+  padding: 0.5rem 0.25rem;
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--surface-border, rgba(0,0,0,0.08));
+}
+
 /* Month grid: 7 equal columns */
 .month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   border-top: 1px solid var(--surface-border);
   border-left: 1px solid var(--surface-border);
+  /* Let rows grow if their content needs more space; prevents clipping of last week cells */
+  grid-auto-rows: minmax(6.5rem, auto);
 }
 
 .month-cell {
-  border-right: 1px solid var(--surface-border);
-  border-bottom: 1px solid var(--surface-border);
+  border-right: 1px solid var(--surface-border, rgba(0,0,0,0.08));
+  border-bottom: 1px solid var(--surface-border, rgba(0,0,0,0.08));
   padding: 0.5rem;
-  min-height: 6.5rem;
+  /* remove fixed min-height here — grid-auto-rows controls row height and allows growth */
+  min-height: 0;
   cursor: pointer;
   background: var(--surface-card);
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.month-cell .cell-header,
+.month-cell .cell-body {
+  /* ensure borders appear distinct by keeping backgrounds transparent inside cells */
+  background: transparent;
+}
+
+/* Draw thin separators using inset shadows as a fallback for some themes */
+.month-grid {
+  box-shadow: inset 0 -1px 0 var(--surface-border, rgba(0,0,0,0.06));
+}
+
+/* Dark mode: increase border contrast so separators remain visible */
+@media (prefers-color-scheme: dark) {
+  .month-weekdays .weekday {
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .month-cell {
+    border-right: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.01);
+  }
+
+  .month-grid {
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.03);
+  }
+
+  .month-cell.is-today::after {
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 0 14px rgba(59,130,246,0.32);
+  }
 }
 .month-cell:hover {
   background: var(--surface-100);
@@ -158,16 +205,26 @@ function openDay(cell) {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  /* allow body to grow and push row height if needed */
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 .appt {
   font-size: 0.8rem;
   color: var(--text-color-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 @media (min-width: 768px) {
-  .month-cell { min-height: 7.5rem; }
+  .month-grid {
+    grid-auto-rows: minmax(7.5rem, auto);
+  }
 }
 @media (min-width: 1200px) {
-  .month-cell { min-height: 9rem; }
+  .month-grid {
+    grid-auto-rows: minmax(9rem, auto);
+  }
 }
 </style>

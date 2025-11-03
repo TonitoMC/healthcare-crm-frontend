@@ -14,7 +14,7 @@
 
         <!-- Content card -->
         <div
-          class="flex flex-column flex-1 min-h-0 shadow-1 border-round-lg surface-card overflow-hidden"
+          class="flex flex-column flex-1 min-h-0 shadow-1 border-round-lg surface-card overflow-auto"
         >
           <CalendarContent class="flex-1 min-h-0" />
         </div>
