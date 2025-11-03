@@ -3,6 +3,7 @@ import Login from "@views/Login.vue";
 import Dashboard from "@views/Dashboard.vue";
 import Calendar from "@views/Calendar.vue";
 import AdminRoles from "@views/AdminRoles.vue";
+import WhatsAppMessages from "@views/WhatsAppMessages.vue";
 const Profile = () => import("@/views/Profile.vue");
 import DefaultLayout from "@layouts/DefaultLayout.vue";
 
@@ -30,6 +31,15 @@ const routes = [
         component: Calendar,
         meta: {
           requiresAuth: true,
+        },
+      },
+      {
+        path: "whatsapp",
+        name: "WhatsAppMessages",
+        component: WhatsAppMessages,
+        meta: {
+          requiresAuth: true,
+          roles: ["admin", "doctor", "assistant"],
         },
       },
       {

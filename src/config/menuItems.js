@@ -12,6 +12,12 @@ export const menuItems = [
     roles: ["admin", "doctor", "assistant"],
   },
   {
+    label: "Mensajes WhatsApp",
+    icon: "pi pi-send",
+    to: "/app/whatsapp",
+    roles: ["admin", "doctor", "assistant"],
+  },
+  {
     label: "Formularios",
     icon: "pi pi-file-edit",
     to: "/app/formularios",
