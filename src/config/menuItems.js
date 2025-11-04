@@ -3,13 +3,13 @@ export const menuItems = [
     label: "Dashboard",
     icon: "pi pi-chart-line",
     to: "/app/dashboard",
-    roles: ["admin", "doctor"],
+    roles: ["admin", "doctor", "secretario"],
   },
   {
     label: "Calendario",
     icon: "pi pi-calendar",
     to: "/app/calendar",
-    roles: ["admin", "doctor", "assistant"],
+    roles: ["admin", "doctor", "assistant", "secretario"],
   },
   {
     label: "Mensajes WhatsApp",
@@ -33,7 +33,7 @@ export const menuItems = [
     label: "Perfil",
     icon: "pi pi-user",
     to: "/app/perfil",
-    roles: ["admin", "doctor", "assistant"],
+    roles: ["admin", "doctor", "assistant", "secretario"],
     style: {
       borderRadius: "2rem",
       background: "var(--surface-100)",

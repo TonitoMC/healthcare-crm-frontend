@@ -126,6 +126,8 @@
 import { ref, watch, computed } from "vue";
 import MediumModal from "@/components/MediumModal.vue";
 import { ScheduleService } from "@/services/scheduleService.js";
+import { useToast } from "primevue/usetoast";
+const toast = useToast();
 
 const isOverride = computed(() => props.dayData?.is_override === true);
 
@@ -214,8 +216,37 @@ function close() {
   visible.value = false;
 }
 
-// ---------- submit ----------
 async function onSubmit() {
+  // validate before saving
+  for (let i = 0; i < ranges.value.length; i++) {
+    const { start, end } = ranges.value[i];
+    if (start >= end) {
+      toast.add({
+        severity: "error",
+        summary: "Rango inválido",
+        detail: `El rango #${i + 1} tiene la hora inicial mayor o igual a la final.`,
+        life: 3000,
+      });
+      return;
+    }
+
+    for (let j = i + 1; j < ranges.value.length; j++) {
+      const a = ranges.value[i];
+      const b = ranges.value[j];
+      // Overlap check: if startA < endB && startB < endA
+      if (a.start < b.end && b.start < a.end) {
+        toast.add({
+          severity: "error",
+          summary: "Rangos superpuestos",
+          detail: `Los rangos #${i + 1} y #${j + 1} se superponen.`,
+          life: 3000,
+        });
+        return;
+      }
+    }
+  }
+
+  // proceed if validation passed
   loading.value = true;
   try {
     const formattedRanges = ranges.value.map((r) => ({
@@ -238,8 +269,20 @@ async function onSubmit() {
 
     emit("saved");
     close();
+    toast.add({
+      severity: "success",
+      summary: "Horario guardado",
+      detail: "Los cambios se aplicaron correctamente.",
+      life: 2500,
+    });
   } catch (err) {
     console.error("Failed to update schedule:", err);
+    toast.add({
+      severity: "error",
+      summary: "Error al guardar",
+      detail: "No se pudo actualizar el horario.",
+      life: 3000,
+    });
   } finally {
     loading.value = false;
   }

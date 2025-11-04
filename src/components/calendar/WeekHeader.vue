@@ -12,7 +12,7 @@
     >
       <!-- edit icon -->
       <i
-        v-if="showIcon"
+        v-if="canEdit"
         class="pi pi-pencil absolute top-0 right-0 m-2 text-sm md:text-base cursor-pointer opacity-50 text-color-secondary hover:opacity-100 border-circle p-1 hover:surface-50"
         v-tooltip.top="'Editar horas'"
         @click="openEdit(day)"
@@ -40,39 +40,34 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { useAuthStore } from "@/stores/auth";
 import EditHoursModal from "@/components/calendar/EditHoursModal.vue";
 
-/* ✅ Get ALL needed props here (script-setup lets you use them directly) */
-const {
-  weekDays,
-  dayNames,
-  isToday,
-  showIcon,
-  effectiveSchedules,
-  loadSchedules,
-} = defineProps({
-  weekDays: { type: Array, required: true },
-  dayNames: { type: Array, required: true },
-  isToday: { type: Function, required: true },
-  showIcon: { type: Boolean, default: true },
-  /* pass these from parent */
-  effectiveSchedules: { type: Array, default: () => [] },
-  loadSchedules: { type: Function, required: true },
-});
+const { weekDays, dayNames, isToday, effectiveSchedules, loadSchedules } =
+  defineProps({
+    weekDays: { type: Array, required: true },
+    dayNames: { type: Array, required: true },
+    isToday: { type: Function, required: true },
+    effectiveSchedules: { type: Array, default: () => [] },
+    loadSchedules: { type: Function, required: true },
+  });
 
-/* ✅ Local state that actually controls the dialog */
+// ✅ Access auth store
+const auth = useAuthStore();
+
+// ✅ Compute permission
+const canEdit = computed(() => auth.permissions.includes("editar-horarios"));
+
 const editVisible = ref(false);
 const selectedDay = ref(null);
 
-/* ✅ Click handler sets a REAL Date and opens the modal */
 function openEdit(day) {
   if (!day) return;
   selectedDay.value = new Date(day);
   editVisible.value = true;
 }
 
-/* ✅ Safe ranges lookup using the prop we added */
 function getRangesFor(day) {
   if (!day || !effectiveSchedules?.length) return [];
   const dateStr = day.toISOString().slice(0, 10);
