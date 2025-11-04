@@ -1,7 +1,6 @@
-// src/services/userService.js
-import { api } from "@/services/api";
+// src/services/UserService.js
 
-// Fallback seeds to work without a live backend
+// Local mock users
 const mockUsers = [
   { id: 1, username: "pcastejon", roles: [1] },
   { id: 2, username: "jmerida", roles: [3] },
@@ -10,30 +9,32 @@ const mockUsers = [
 ];
 
 export const UserService = {
+  /**
+   * Return mock users without hitting any backend
+   */
   async listUsers() {
-    try {
-      const { data } = await api.get("/users");
-      return data; // [{id, username, roles:[{id, nombre}]}]
-    } catch (e) {
-      return mockUsers;
-    }
+    return mockUsers;
   },
 
+  /**
+   * Add a role to a mock user (in-memory only)
+   */
   async assignRole(userId, roleId) {
-    try {
-      await api.post(`/users/${userId}/roles`, { roleId });
-    } catch (e) {
-      const u = mockUsers.find((u) => u.id === userId);
-      if (u && !u.roles.includes(roleId)) u.roles.push(roleId);
+    const user = mockUsers.find((u) => u.id === userId);
+    if (user && !user.roles.includes(roleId)) {
+      user.roles.push(roleId);
     }
+    return user;
   },
 
+  /**
+   * Remove a role from a mock user (in-memory only)
+   */
   async removeRole(userId, roleId) {
-    try {
-      await api.delete(`/users/${userId}/roles/${roleId}`);
-    } catch (e) {
-      const u = mockUsers.find((u) => u.id === userId);
-      if (u) u.roles = u.roles.filter((r) => r !== roleId);
+    const user = mockUsers.find((u) => u.id === userId);
+    if (user) {
+      user.roles = user.roles.filter((r) => r !== roleId);
     }
+    return user;
   },
 };

@@ -25,7 +25,6 @@
         class="col flex flex-column min-h-0 p-2 surface-card border-round-lg shadow-1 overflow-auto"
       >
         <div v-for="slot in getSlotsFor(day)" :key="slot.time" class="mb-1">
-          <!-- Appointment -->
           <div
             v-if="slot.type === 'appointment'"
             class="p-2 border-round-md shadow-1 bg-primary-50 flex justify-content-between align-items-center"
