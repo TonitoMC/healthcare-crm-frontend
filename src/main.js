@@ -26,7 +26,6 @@ app.use(pinia);
 import { useAuthStore } from "@/stores/auth";
 const auth = useAuthStore();
 auth.restoreSession();
-auth.ensureDevSession();
 
 setupAuthGuard(router);
 app.use(router);
