@@ -31,18 +31,34 @@
             class="flex justify-content-between align-items-center flex-wrap gap-2"
           >
             <div class="flex flex-column">
-              <span class="font-medium text-sm md:text-base text-color">
+              <router-link 
+                v-if="slotProps.item.patientId" 
+                :to="`/app/patients/${slotProps.item.patientId}`" 
+                class="patient-link font-medium text-sm md:text-base"
+              >
+                {{ slotProps.item.patient }}
+              </router-link>
+              <span v-else class="font-medium text-sm md:text-base text-color">
                 {{ slotProps.item.patient }}
               </span>
               <small class="text-xs md:text-sm text-color-secondary">
                 {{ slotProps.item.doctor }}
               </small>
             </div>
-            <Tag
-              :value="slotProps.item.status"
-              :severity="statusColor(slotProps.item.status)"
-              size="small"
-            />
+            <div class="flex gap-2 align-items-center">
+              <Tag
+                :value="slotProps.item.status"
+                :severity="statusColor(slotProps.item.status)"
+                size="small"
+              />
+              <Button
+                v-if="slotProps.item.patientId && isWithinOneHour(slotProps.item.start)"
+                label="Ir a Paciente"
+                icon="pi pi-user"
+                size="small"
+                @click="$router.push(`/app/patients/${slotProps.item.patientId}`)"
+              />
+            </div>
           </div>
         </div>
 
@@ -63,10 +79,10 @@
 import { computed } from "vue";
 import Tag from "primevue/tag";
 import Timeline from "primevue/timeline";
-import ScrollPanel from "primevue/scrollpanel";
+import Button from "primevue/button";
 
 const props = defineProps({
-  // Expected normalized: [{ start: "HH:mm", end: "HH:mm", patient, doctor, status }]
+  // Expected normalized: [{ start: "HH:mm", end: "HH:mm", patient, doctor, status, patientId }]
   appointments: { type: Array, required: true },
   businessHours: {
     type: Object,
@@ -74,6 +90,17 @@ const props = defineProps({
   },
   minGapMinutes: { type: Number, default: 15 },
 });
+
+const isWithinOneHour = (timeStr) => {
+  if (!timeStr) return false;
+  const now = new Date();
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const apptTime = new Date();
+  apptTime.setHours(hours, minutes, 0, 0);
+  const diffMs = apptTime - now;
+  const diffMins = diffMs / (1000 * 60);
+  return diffMins >= 0 && diffMins <= 60;
+};
 
 const toMinutes = (hhmm) => {
   const [h, m] = (hhmm ?? "").split(":").map(Number);
@@ -142,6 +169,8 @@ const timelineItems = computed(() => {
       doctor: appt.doctor ?? "",
       status: appt.status ?? "Pendiente",
       type: "appointment",
+      patientId: appt.patientId ?? appt.paciente_id,
+      start: appt.start,
     });
     prevEnd = appt.end;
   }
@@ -160,3 +189,15 @@ const timelineItems = computed(() => {
   return items;
 });
 </script>
+
+<style scoped>
+.patient-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.patient-link:hover {
+  text-decoration: underline;
+}
+</style>

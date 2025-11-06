@@ -36,7 +36,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import Card from "primevue/card";
 import DatePicker from "primevue/datepicker";
 import AppointmentTimeline from "@/components/dashboard/AppointmentTimeline.vue";
-import { getTodayAppointments } from "@/services/appointmentService.js";
+import { AppointmentService } from "@/services/appointmentService.js";
 
 const selectedDate = ref(new Date());
 const rawAppointments = ref([]);
@@ -82,9 +82,22 @@ const normalizedAppointments = computed(() => {
 
   const mapped = src
     .map((a) => {
-      const startRaw = a.start ?? a.time;
-      const endRaw =
-        a.end ?? (startRaw ? addMinutes(startRaw, a.duration ?? 30) : null);
+      // Handle both API format (fecha as ISO datetime) and legacy format
+      let startRaw, endRaw;
+      
+      if (a.fecha) {
+        // API returns fecha as ISO datetime, extract time
+        const dateObj = new Date(a.fecha);
+        const hours = dateObj.getHours();
+        const minutes = dateObj.getMinutes();
+        startRaw = `${pad(hours)}:${pad(minutes)}`;
+        // duracion is in minutes
+        endRaw = addMinutes(startRaw, a.duracion || 30);
+      } else {
+        // Legacy format
+        startRaw = a.start ?? a.time;
+        endRaw = a.end ?? (startRaw ? addMinutes(startRaw, a.duration ?? 30) : null);
+      }
 
       const start = sanitizeTime(startRaw);
       const end = sanitizeTime(endRaw);
@@ -94,7 +107,7 @@ const normalizedAppointments = computed(() => {
       return {
         start,
         end,
-        patient: a.patient ?? "Paciente",
+        patient: a.nombre_paciente ?? a.patient ?? "Paciente",
         doctor: a.doctor ?? "",
         status: a.status ?? "Pendiente",
       };
@@ -102,41 +115,16 @@ const normalizedAppointments = computed(() => {
     .filter(Boolean)
     .sort((x, y) => x.start.localeCompare(y.start));
 
-  // Fallback demo if nothing valid
-  if (mapped.length === 0) {
-    return [
-      {
-        start: "09:00",
-        end: "09:30",
-        patient: "María Pérez",
-        doctor: "Dr. López",
-        status: "Completada",
-      },
-      {
-        start: "10:00",
-        end: "10:30",
-        patient: "Juan García",
-        doctor: "Dr. Hernández",
-        status: "Pendiente",
-      },
-      {
-        start: "11:15",
-        end: "11:45",
-        patient: "Luis Martínez",
-        doctor: "Dr. López",
-        status: "En progreso",
-      },
-    ];
-  }
-
   return mapped;
 });
 
 const fetchAppointments = async () => {
   try {
-    const data = await getTodayAppointments(selectedDate.value);
+    const dateStr = selectedDate.value.toISOString().split('T')[0]; // YYYY-MM-DD
+    const data = await AppointmentService.getByDate(dateStr);
     rawAppointments.value = Array.isArray(data) ? data : [];
-  } catch {
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
     rawAppointments.value = [];
   }
 };

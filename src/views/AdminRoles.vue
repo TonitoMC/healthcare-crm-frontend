@@ -1,11 +1,11 @@
 <template>
-  <div class="p-3 flex flex-column gap-4 h-full overflow-hidden">
+  <div class="p-3 flex flex-column gap-4 h-full">
     <div class="flex align-items-center justify-content-between">
       <div class="text-2xl font-semibold">Panel de Administración</div>
       <div class="text-color-secondary">Roles y Permisos</div>
     </div>
 
-    <div class="flex-1 min-h-0 flex justify-content-center overflow-auto">
+    <div class="flex-1 min-h-0 flex justify-content-center">
       <div class="admin-content-container w-full">
         <div class="admin-grid">
           <!-- Left column: Roles -->
@@ -538,3 +538,55 @@ async function confirmDelete() {
   }
 }
 </script>
+
+<style scoped>
+.admin-content-container {
+  max-width: 100%;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1rem;
+  width: 100%;
+}
+
+.roles-col {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.perms-col {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.users-row {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/* Responsive: En pantallas pequeñas, una columna */
+@media (max-width: 768px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  
+  .roles-col {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  
+  .perms-col {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  
+  .users-row {
+    grid-column: 1;
+    grid-row: 3;
+  }
+}
+</style>

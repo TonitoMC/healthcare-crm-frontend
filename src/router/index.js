@@ -4,6 +4,7 @@ import Dashboard from "@views/Dashboard.vue";
 import Calendar from "@views/Calendar.vue";
 import AdminRoles from "@views/AdminRoles.vue";
 import WhatsAppMessages from "@views/WhatsAppMessages.vue";
+import PatientDetail from "@views/PatientDetail.vue";
 const Profile = () => import("@/views/Profile.vue");
 import DefaultLayout from "@layouts/DefaultLayout.vue";
 
@@ -57,6 +58,15 @@ const routes = [
         meta: {
           requiresAuth: true,
           roles: ["admin"],
+        },
+      },
+      {
+        path: "patients/:id",
+        name: "PatientDetail",
+        component: PatientDetail,
+        meta: {
+          requiresAuth: true,
+          roles: ["admin", "doctor"],
         },
       },
     ],

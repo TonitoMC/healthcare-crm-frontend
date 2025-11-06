@@ -3,9 +3,9 @@
     <!-- 🧭 Top bar -->
     <AppNavbar class="flex-none" />
 
-    <!-- 🧱 Main area fills remaining space -->
-    <main class="flex-1 flex flex-column overflow-hidden min-h-0">
-      <router-view class="flex-1 flex flex-column min-h-0 overflow-hidden" />
+    <!-- 🧱 Main area fills remaining space with scroll -->
+    <main class="flex-1 flex flex-column overflow-auto min-h-0">
+      <router-view class="flex-1 flex flex-column min-h-0" />
     </main>
   </div>
 </template>

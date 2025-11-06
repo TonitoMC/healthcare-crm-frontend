@@ -4,12 +4,26 @@ import { useAuthStore } from "@/stores/auth";
  * Sets up global route guards for authentication, roles, and permissions.
  */
 export function setupAuthGuard(router) {
-  router.beforeEach((to) => {
+  router.beforeEach(async (to) => {
     const auth = useAuthStore();
 
     // Restore session if it hasn't been done yet
     if (!auth.token) {
       auth.restoreSession();
+    }
+
+    // 🔧 DEV: Auto-login if not authenticated (bypass manual login)
+    if (!auth.isAuthenticated && import.meta.env.DEV) {
+      try {
+        console.log("🔑 [DEV] Auto-login activado con admin/admin");
+        await auth.login("admin", "admin");
+      } catch (error) {
+        console.error("❌ [DEV] Auto-login falló:", error);
+        // Si falla, continuar al flujo normal de login
+        if (to.meta.requiresAuth) {
+          return "/login";
+        }
+      }
     }
 
     // Redirect root to login or dashboard depending on auth state

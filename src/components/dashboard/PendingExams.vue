@@ -36,8 +36,39 @@
           size="small"
           responsiveLayout="scroll"
         >
+          <Column header="Prioridad" style="width: 100px">
+            <template #body="slotProps">
+              <Tag 
+                v-if="getDaysOverdue(slotProps.data.date) > 7" 
+                severity="danger" 
+                value="Alta"
+                icon="pi pi-exclamation-triangle"
+              />
+              <Tag 
+                v-else-if="getDaysOverdue(slotProps.data.date) > 0" 
+                severity="warning" 
+                value="Media"
+              />
+              <Tag 
+                v-else 
+                severity="info" 
+                value="Normal"
+              />
+            </template>
+          </Column>
           <Column field="date" header="Fecha" />
-          <Column field="patient" header="Paciente" />
+          <Column header="Paciente">
+            <template #body="slotProps">
+              <router-link 
+                v-if="slotProps.data.patientId" 
+                :to="`/app/patients/${slotProps.data.patientId}`" 
+                class="patient-link"
+              >
+                {{ slotProps.data.patient }}
+              </router-link>
+              <span v-else>{{ slotProps.data.patient }}</span>
+            </template>
+          </Column>
           <Column field="examType" header="Tipo de Examen" />
           <Column header="Acciones">
             <template #body="slotProps">
@@ -80,34 +111,53 @@ import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
+import Tag from "primevue/tag";
 import UploadExamModal from "./UploadExamModal.vue";
+import { ExamService } from "@/services/examService";
+import { useToast } from "primevue/usetoast";
+
+const toast = useToast();
 
 const exams = ref([]);
 const searchQuery = ref("");
 const uploadDialogVisible = ref(false);
 const selectedExam = ref(null);
 
+function getDaysOverdue(dateStr) {
+  if (!dateStr) return 0;
+  const examDate = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - examDate;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
+}
+
+async function loadPendingExams() {
+  try {
+    const data = await ExamService.getPending();
+    // Map backend data to expected format
+    exams.value = (Array.isArray(data) ? data : []).map(exam => ({
+      id: exam.id,
+      date: exam.fecha ? new Date(exam.fecha).toISOString().split('T')[0] : '',
+      patient: exam.nombre_paciente || 'Sin nombre',
+      patientId: exam.paciente_id,
+      examType: exam.tipo || 'Sin tipo',
+      file: exam.s3_key || null,
+    }));
+  } catch (error) {
+    console.error('Error loading pending exams:', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'No se pudieron cargar los exámenes pendientes',
+      life: 3000
+    });
+    exams.value = [];
+  }
+}
+
 onMounted(() => {
-  exams.value = [
-    {
-      date: "2025-04-01",
-      patient: "María González López",
-      examType: "Refracción ciclopléjica",
-      file: null,
-    },
-    {
-      date: "2025-06-30",
-      patient: "Carlos Sánchez Díaz",
-      examType: "Curva de tensión ocular",
-      file: null,
-    },
-    {
-      date: "2025-10-19",
-      patient: "Juan Pérez Martínez",
-      examType: "Paquimetría",
-      file: null,
-    },
-  ];
+  loadPendingExams();
 });
 
 const filteredExams = computed(() => {
@@ -125,10 +175,43 @@ function openUploadDialog(exam) {
   uploadDialogVisible.value = true;
 }
 
-function onExamUploaded({ exam, file }) {
-  // Match the uploaded exam by id or by object reference
-  const target = exams.value.find((e) => e === exam);
-  if (target) target.file = file.name;
-  uploadDialogVisible.value = false;
+async function onExamUploaded({ exam, file }) {
+  try {
+    // Upload file to backend
+    await ExamService.uploadPdf(exam.id, file)
+    
+    // Update local state
+    const target = exams.value.find((e) => e.id === exam.id)
+    if (target) {
+      target.file = file.name
+      target.estado = 'COMPLETADO'
+    }
+    
+    uploadDialogVisible.value = false
+    
+    // Optionally reload exams
+    await loadPendingExams()
+  } catch (error) {
+    console.error('Error uploading exam:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Error al subir archivo',
+      detail: 'No se pudo subir el archivo',
+      life: 3000
+    })
+  }
 }
 </script>
+
+<style scoped>
+.patient-link {
+  color: var(--primary-color);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.patient-link:hover {
+  text-decoration: underline;
+}
+</style>
