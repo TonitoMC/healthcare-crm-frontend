@@ -78,7 +78,7 @@ export const RoleService = {
    * @returns {Promise<Array>} List of all permissions.
    */
   async listPermissions() {
-    const { data } = await api.get("/role/permissions");
+    const { data } = await api.get("/role/all/permissions");
     return data;
   },
 

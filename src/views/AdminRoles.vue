@@ -347,26 +347,41 @@ async function loadRolesAndPermissions() {
       RoleService.listPermissions(),
     ]);
 
-    // normalize field names just in case backend differs
+    // ✅ Normalize for backend's capitalized keys
     roles.value = rs.map((r) => ({
-      id: r.id ?? r.role_id,
-      nombre: r.nombre ?? r.name,
-      descripcion: r.descripcion ?? r.description,
+      id: r.id ?? r.ID ?? r.role_id,
+      nombre: r.nombre ?? r.name ?? r.Name,
+      descripcion: r.descripcion ?? r.description ?? r.Description,
     }));
 
     permissions.value = perms.map((p) => ({
-      id: p.id ?? p.permission_id,
-      nombre: p.nombre ?? p.name,
-      descripcion: p.descripcion ?? p.description,
+      id: p.id ?? p.ID ?? p.permission_id,
+      nombre: p.nombre ?? p.name ?? p.Name,
+      descripcion: p.descripcion ?? p.description ?? p.Description,
     }));
 
-    const entries = await Promise.all(
-      roles.value.map(async (r) => {
+    // ✅ Load each role's permissions safely
+    const entries = [];
+    for (const r of roles.value) {
+      try {
         const rp = await RoleService.getRolePermissions(r.id);
-        return [r.id, new Set(rp.map((p) => p.id))];
-      }),
-    );
+        const normalized = (rp || []).map(
+          (p) => p.id ?? p.ID ?? p.permission_id,
+        );
+        entries.push([r.id, new Set(normalized)]);
+      } catch (err) {
+        console.warn(`Error loading permissions for role ${r.id}`, err);
+        entries.push([r.id, new Set()]);
+      }
+    }
     rolePermissionsMap.value = new Map(entries);
+  } catch (err) {
+    console.error("Error loading roles or permissions:", err);
+    toast.add({
+      severity: "error",
+      summary: "Error al cargar roles o permisos",
+      life: 3000,
+    });
   } finally {
     loading.value.roles = false;
   }
@@ -376,6 +391,13 @@ async function loadUsers() {
   loading.value.users = true;
   try {
     users.value = await UserService.listUsers();
+  } catch (err) {
+    console.error("Error loading users:", err);
+    toast.add({
+      severity: "error",
+      summary: "Error al cargar usuarios",
+      life: 3000,
+    });
   } finally {
     loading.value.users = false;
   }
@@ -383,10 +405,12 @@ async function loadUsers() {
 
 function openPermissionsDialog(role) {
   currentRole.value = role;
-  const set = rolePermissionsMap.value.get(role.id) || new Set();
-  selectedPermissionIds.value = Array.from(set);
+  selectedPermissionIds.value = Array.from(
+    rolePermissionsMap.value.get(role.id) || [],
+  );
   dialogs.value.permissions = true;
 }
+
 function closePermissionsDialog() {
   dialogs.value.permissions = false;
   currentRole.value = null;
@@ -397,10 +421,12 @@ function openAssignRolesDialog(user) {
   selectedUserRoleIds.value = [...(user.roles || [])];
   dialogs.value.assignRoles = true;
 }
+
 function closeAssignRolesDialog() {
   dialogs.value.assignRoles = false;
   currentUser.value = null;
 }
+
 async function saveUserRoles() {
   if (!currentUser.value) return;
   const userId = currentUser.value.id;
@@ -411,7 +437,7 @@ async function saveUserRoles() {
   const toRemove = [...before].filter((id) => !target.has(id));
 
   try {
-    await Promise.all([
+    await Promise.allSettled([
       ...toAdd.map((rid) => UserService.assignRole(userId, rid)),
       ...toRemove.map((rid) => UserService.removeRole(userId, rid)),
     ]);
@@ -422,7 +448,8 @@ async function saveUserRoles() {
       life: 2000,
     });
     closeAssignRolesDialog();
-  } catch (e) {
+  } catch (err) {
+    console.error("Error saving user roles:", err);
     toast.add({ severity: "error", summary: "Error al guardar", life: 2500 });
   }
 }
@@ -432,41 +459,77 @@ onMounted(async () => {
 });
 
 const formRole = ref({ nombre: "", descripcion: "" });
+
 function openCreateRoleDialog() {
   formRole.value = { nombre: "", descripcion: "" };
   dialogs.value.createRole = true;
 }
+
 function closeCreateRoleDialog() {
   dialogs.value.createRole = false;
 }
+
 async function createRole() {
-  if (!formRole.value.nombre) return;
-  const created = await RoleService.createRole({ ...formRole.value });
-  roles.value = [...roles.value, created];
-  rolePermissionsMap.value.set(created.id, new Set());
-  toast.add({ severity: "success", summary: "Rol creado", life: 2000 });
-  closeCreateRoleDialog();
+  if (!formRole.value.nombre) {
+    toast.add({
+      severity: "warn",
+      summary: "El nombre es obligatorio",
+      life: 2500,
+    });
+    return;
+  }
+
+  try {
+    const created = await RoleService.createRole({ ...formRole.value });
+    roles.value.push({
+      id: created.id ?? created.ID,
+      nombre: created.nombre ?? created.name ?? created.Name,
+      descripcion:
+        created.descripcion ?? created.description ?? created.Description,
+    });
+    rolePermissionsMap.value.set(created.id ?? created.ID, new Set());
+    toast.add({ severity: "success", summary: "Rol creado", life: 2000 });
+    closeCreateRoleDialog();
+  } catch (err) {
+    console.error("Error creating role:", err);
+    toast.add({ severity: "error", summary: "Error creando rol", life: 2500 });
+  }
 }
 
-// Confirm deletion
 const confirmDialog = ref({ title: "Confirmar", message: "", action: null });
+
 function closeConfirm() {
   dialogs.value.confirm = false;
   confirmDialog.value = { title: "Confirmar", message: "", action: null };
 }
+
 function askDeleteRole(role) {
   confirmDialog.value = {
     title: "Eliminar rol",
     message: `¿Eliminar el rol "${role.nombre}"? Esta acción no se puede deshacer.`,
     action: async () => {
-      await RoleService.deleteRole(role.id);
-      roles.value = roles.value.filter((r) => r.id !== role.id);
-      rolePermissionsMap.value.delete(role.id);
-      toast.add({ severity: "success", summary: "Rol eliminado", life: 2000 });
+      try {
+        await RoleService.deleteRole(role.id);
+        roles.value = roles.value.filter((r) => r.id !== role.id);
+        rolePermissionsMap.value.delete(role.id);
+        toast.add({
+          severity: "success",
+          summary: "Rol eliminado",
+          life: 2000,
+        });
+      } catch (err) {
+        console.error("Error deleting role:", err);
+        toast.add({
+          severity: "error",
+          summary: "Error al eliminar rol",
+          life: 2500,
+        });
+      }
     },
   };
   dialogs.value.confirm = true;
 }
+
 async function confirmDelete() {
   try {
     if (confirmDialog.value.action) await confirmDialog.value.action();
@@ -475,42 +538,3 @@ async function confirmDelete() {
   }
 }
 </script>
-
-<style scoped>
-.admin-content-container {
-  max-width: 1600px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-:deep(.p-datatable-wrapper) {
-  height: 100%;
-}
-
-.admin-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-
-@media (min-width: 768px) {
-  .admin-grid {
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
-  }
-  .admin-grid > .users-row {
-    grid-column: 1 / -1;
-  }
-}
-
-.admin-grid .p-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.admin-grid .p-card .p-datatable {
-  flex: 1 1 auto;
-}
-</style>
