@@ -1,124 +1,143 @@
-// src/services/roleService.js
-import { api } from "@/services/api";
+import { api } from "@/services/api.js";
 
-// Fallback seeds to work without a live backend
-const mockRoles = [
-  { id: 1, nombre: "medico", descripcion: "desc" },
-  { id: 2, nombre: "secretario", descripcion: "desc" },
-  { id: 3, nombre: "admin", descripcion: "desc" },
-];
-
-const mockPermissions = [
-  { id: 1, nombre: "gestion_usuarios", descripcion: "Crear y editar usuarios y roles" },
-  { id: 2, nombre: "gestion_pacientes", descripcion: "Administrar registros de pacientes" },
-  { id: 3, nombre: "gestion_citas", descripcion: "Administrar citas" },
-];
-
-// rolId -> permisoIds
-let mockRolePermissions = {
-  1: [2, 3],
-  2: [2],
-  3: [1, 2, 3],
-};
-
+/**
+ * RoleService handles CRUD operations for roles
+ * and their assigned permissions.
+ * Matches backend /api/role endpoints.
+ */
 export const RoleService = {
+  // ---------------------------------------------------------------------------
+  // 📘 Roles
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fetch all roles.
+   * GET /role
+   * @returns {Promise<Array>} List of roles.
+   */
   async listRoles() {
-    try {
-      const { data } = await api.get("/roles");
-      return data;
-    } catch (e) {
-      // fallback
-      return mockRoles;
-    }
+    const { data } = await api.get("/role");
+    return data;
   },
 
-  async listPermissions() {
-    try {
-      const { data } = await api.get("/permissions");
-      return data;
-    } catch (e) {
-      return mockPermissions;
-    }
+  /**
+   * Fetch a single role and its permissions.
+   * GET /role/:id
+   * @param {Number} id - Role ID
+   * @returns {Promise<Object>} { role, permissions }
+   */
+  async getRole(id) {
+    if (!id) throw new Error("Role ID is required");
+    const { data } = await api.get(`/role/${id}`);
+    return data;
   },
 
-  async getRolePermissions(roleId) {
-    try {
-      const { data } = await api.get(`/roles/${roleId}/permissions`);
-      return data; // [{id, nombre, descripcion}]
-    } catch (e) {
-      const ids = mockRolePermissions[roleId] || [];
-      return mockPermissions.filter((p) => ids.includes(p.id));
-    }
-  },
-
-  async addPermissionToRole(roleId, permissionId) {
-    try {
-      await api.post(`/roles/${roleId}/permissions`, { permissionId });
-    } catch (e) {
-      // mutate mock
-      const set = new Set(mockRolePermissions[roleId] || []);
-      set.add(permissionId);
-      mockRolePermissions[roleId] = Array.from(set);
-    }
-  },
-
-  async removePermissionFromRole(roleId, permissionId) {
-    try {
-      await api.delete(`/roles/${roleId}/permissions/${permissionId}`);
-    } catch (e) {
-      mockRolePermissions[roleId] = (mockRolePermissions[roleId] || []).filter(
-        (id) => id !== permissionId,
-      );
-    }
-  },
-
+  /**
+   * Create a new role.
+   * POST /role
+   * @param {Object} payload - { nombre, descripcion }
+   * @returns {Promise<Object>} Creation response.
+   */
   async createRole({ nombre, descripcion }) {
-    try {
-      const { data } = await api.post("/roles", { nombre, descripcion });
-      return data;
-    } catch (e) {
-      const nextId = Math.max(0, ...mockRoles.map((r) => r.id)) + 1;
-      const created = { id: nextId, nombre, descripcion };
-      mockRoles.push(created);
-      return created;
-    }
+    const { data } = await api.post("/role", { nombre, descripcion });
+    return data;
   },
 
-  async deleteRole(roleId) {
-    try {
-      await api.delete(`/roles/${roleId}`);
-    } catch (e) {
-      const idx = mockRoles.findIndex((r) => r.id === roleId);
-      if (idx >= 0) mockRoles.splice(idx, 1);
-      // remove mappings
-      delete mockRolePermissions[roleId];
-    }
+  /**
+   * Update an existing role.
+   * PUT /role/:id
+   * @param {Number} id - Role ID
+   * @param {Object} payload - { nombre, descripcion }
+   * @returns {Promise<Object>} Update response.
+   */
+  async updateRole(id, { nombre, descripcion }) {
+    if (!id) throw new Error("Role ID is required");
+    const { data } = await api.put(`/role/${id}`, { nombre, descripcion });
+    return data;
   },
 
-  async createPermission({ nombre, descripcion }) {
-    try {
-      const { data } = await api.post("/permissions", { nombre, descripcion });
-      return data;
-    } catch (e) {
-      const nextId = Math.max(0, ...mockPermissions.map((p) => p.id)) + 1;
-      const created = { id: nextId, nombre, descripcion };
-      mockPermissions.push(created);
-      return created;
-    }
+  /**
+   * Delete a role by ID.
+   * DELETE /role/:id
+   * @param {Number} id - Role ID
+   * @returns {Promise<Object>} Deletion response.
+   */
+  async deleteRole(id) {
+    if (!id) throw new Error("Role ID is required");
+    const { data } = await api.delete(`/role/${id}`);
+    return data;
   },
 
-  async deletePermission(permissionId) {
-    try {
-      await api.delete(`/permissions/${permissionId}`);
-    } catch (e) {
-      const idx = mockPermissions.findIndex((p) => p.id === permissionId);
-      if (idx >= 0) mockPermissions.splice(idx, 1);
-      // remove from all role mappings
-      for (const rid of Object.keys(mockRolePermissions)) {
-        mockRolePermissions[rid] = (mockRolePermissions[rid] || []).filter(
-          (id) => id !== permissionId,
-        );
-      }
-    }
+  // ---------------------------------------------------------------------------
+  // 🔐 Permissions
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Get all permissions in the system.
+   * GET /role/permissions
+   * @returns {Promise<Array>} List of all permissions.
+   */
+  async listPermissions() {
+    const { data } = await api.get("/role/permissions");
+    return data;
+  },
+
+  /**
+   * Get all permissions assigned to a role.
+   * GET /role/:id/permissions
+   * @param {Number} id - Role ID
+   * @returns {Promise<Array>} List of permissions for that role.
+   */
+  async getRolePermissions(id) {
+    if (!id) throw new Error("Role ID is required");
+    const { data } = await api.get(`/role/${id}/permissions`);
+    return data;
+  },
+
+  /**
+   * Add a permission to a role.
+   * POST /role/:id/permissions
+   * @param {Number} roleId - Role ID
+   * @param {Number} permissionId - Permission ID
+   * @returns {Promise<Object>} Add response.
+   */
+  async addPermission(roleId, permissionId) {
+    if (!roleId || !permissionId)
+      throw new Error("Role and permission IDs required");
+    const { data } = await api.post(`/role/${roleId}/permissions`, {
+      permission_id: permissionId,
+    });
+    return data;
+  },
+
+  /**
+   * Remove a specific permission from a role.
+   * DELETE /role/:id/permissions/:permissionID
+   * @param {Number} roleId - Role ID
+   * @param {Number} permissionId - Permission ID
+   * @returns {Promise<Object>} Removal response.
+   */
+  async removePermission(roleId, permissionId) {
+    if (!roleId || !permissionId)
+      throw new Error("Role and permission IDs required");
+    const { data } = await api.delete(
+      `/role/${roleId}/permissions/${permissionId}`,
+    );
+    return data;
+  },
+
+  /**
+   * Replace all permissions for a given role.
+   * PUT /role/:id/permissions
+   * @param {Number} roleId - Role ID
+   * @param {Array<Number>} permissionIds - List of permission IDs
+   * @returns {Promise<Object>} Update response.
+   */
+  async updateRolePermissions(roleId, permissionIds) {
+    if (!roleId) throw new Error("Role ID is required");
+    const { data } = await api.put(`/role/${roleId}/permissions`, {
+      permission_ids: permissionIds,
+    });
+    return data;
   },
 };
