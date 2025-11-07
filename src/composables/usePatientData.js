@@ -1,57 +1,61 @@
 // src/composables/usePatientData.js
-import { ref, computed } from "vue";
-import { PatientService } from "@/services/patientService";
+import { ref } from "vue";
+import { PatientService } from "@/services/patientService.js";
 
 export function usePatientData() {
   const patient = ref(null);
+  const exams = ref([]);
+  const consultations = ref([]);
+  const medicalRecord = ref(null);
   const loading = ref(false);
   const error = ref(null);
 
-  const edad = computed(() => {
-    if (!patient.value?.fecha_nacimiento) return 0;
-    const birth = new Date(patient.value.fecha_nacimiento);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  });
-
+  /**
+   * Loads full patient info with optional related data.
+   * @param {number} id
+   */
   async function loadPatient(id) {
     loading.value = true;
     error.value = null;
     try {
-      patient.value = await PatientService.getById(id);
+      const data = await PatientService.getPatientDetails(id, {
+        exams: true,
+        consultations: true,
+        record: true,
+      });
+
+      patient.value = data.patient || null;
+      exams.value = data.exams || [];
+      consultations.value = data.consultations || [];
+      medicalRecord.value = data.medical_record || null;
     } catch (e) {
-      error.value = e.message || "Error cargando paciente";
-      patient.value = null;
+      console.error("usePatientData.loadPatient error:", e);
+      error.value = "Error al cargar la información del paciente.";
     } finally {
       loading.value = false;
     }
   }
 
-  async function updatePatient(id, data) {
-    loading.value = true;
-    error.value = null;
+  /**
+   * Update patient basic info.
+   */
+  async function updatePatient(id, payload) {
     try {
-      await PatientService.update(id, data);
-      await loadPatient(id);
-      return true;
+      await PatientService.updatePatient(id, payload);
+      await loadPatient(id); // reload data after update
     } catch (e) {
-      error.value = e.message || "Error actualizando paciente";
-      return false;
-    } finally {
-      loading.value = false;
+      console.error("usePatientData.updatePatient error:", e);
+      error.value = "Error al actualizar paciente.";
     }
   }
 
   return {
     patient,
+    exams,
+    consultations,
+    medicalRecord,
     loading,
     error,
-    edad,
     loadPatient,
     updatePatient,
   };
