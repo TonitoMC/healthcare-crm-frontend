@@ -2,49 +2,47 @@
   <Card class="patient-header">
     <template #content>
       <div
-        class="flex flex-column md:flex-row justify-content-between align-items-start gap-4"
+        class="flex flex-column md:flex-row align-items-stretch gap-4 md:gap-6"
       >
-        <!-- 🧍 Left: Patient Info -->
-        <div class="flex-1 flex flex-column gap-2">
-          <div class="flex align-items-center gap-2">
-            <i class="pi pi-user text-3xl text-primary"></i>
-            <h2 class="m-0 text-2xl font-semibold">
-              {{ patient?.nombre || "Cargando..." }}
-            </h2>
+        <!-- 🧍 Left: Patient Info (exact 50%) -->
+        <div class="flex flex-column gap-2 flex-1 min-w-0">
+          <div class="flex justify-content-between align-items-start">
+            <div class="flex align-items-center gap-2">
+              <i class="pi pi-user text-3xl text-primary"></i>
+              <h2 class="m-0 text-2xl font-semibold">
+                {{ patient?.nombre || "Cargando..." }}
+              </h2>
+            </div>
+
+            <Button
+              icon="pi pi-pencil"
+              text
+              rounded
+              size="small"
+              @click="$emit('edit')"
+            />
           </div>
 
-          <div class="flex flex-wrap gap-3 text-color-secondary">
+          <div
+            class="flex flex-wrap gap-3 text-color-secondary text-sm md:text-base"
+          >
             <span><i class="pi pi-calendar mr-2"></i>{{ edad }} años</span>
             <span
               ><i class="pi pi-venus-mars mr-2"></i>{{ patient?.sexo }}</span
             >
-            <span v-if="patient?.telefono"
-              ><i class="pi pi-phone mr-2"></i>{{ patient.telefono }}</span
-            >
-          </div>
-
-          <div class="flex gap-2 mt-2">
-            <Button
-              icon="pi pi-pencil"
-              label="Editar"
-              severity="secondary"
-              outlined
-              size="small"
-              @click="$emit('edit')"
-            />
-            <Button
-              icon="pi pi-file-pdf"
-              label="Historial"
-              severity="info"
-              outlined
-              size="small"
-              @click="$emit('viewHistory')"
-            />
+            <span v-if="patient?.telefono">
+              <i class="pi pi-phone mr-2"></i>{{ patient.telefono }}
+            </span>
           </div>
         </div>
 
-        <!-- 🩺 Right: Antecedentes Summary -->
-        <div class="flex-1 min-w-0">
+        <!-- 🧱 Divider (no width, just a border) -->
+        <div
+          class="hidden md:block align-self-stretch w-0 border-right-1 border-300"
+        ></div>
+
+        <!-- 🩺 Right: Antecedentes (exact 50%) -->
+        <div class="flex flex-column flex-1 min-w-0">
           <MedicalSummaryInline
             :record="medicalRecord"
             :loading="loadingMedical"
@@ -68,7 +66,7 @@ const props = defineProps({
   loadingMedical: { type: Boolean, default: false },
 });
 
-defineEmits(["edit", "viewHistory", "editMedical"]);
+defineEmits(["edit", "editMedical"]);
 </script>
 
 <style scoped>

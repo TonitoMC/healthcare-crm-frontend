@@ -11,10 +11,11 @@
     <Message severity="error" :closable="false">{{ error }}</Message>
   </div>
 
-  <div v-else class="patient-detail-view p-4 flex flex-column gap-3">
+  <div v-else class="patient-detail-view p-4 flex flex-column gap-0">
     <!-- 🧩 Header -->
     <PatientHeader
       :patient="patient"
+      :medical-record="medical - record"
       @edit="handleEdit"
       @viewHistory="handleViewHistory"
     />
