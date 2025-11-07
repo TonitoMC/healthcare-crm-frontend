@@ -36,32 +36,12 @@
           size="small"
           responsiveLayout="scroll"
         >
-          <Column header="Prioridad" style="width: 100px">
-            <template #body="slotProps">
-              <Tag 
-                v-if="getDaysOverdue(slotProps.data.date) > 7" 
-                severity="danger" 
-                value="Alta"
-                icon="pi pi-exclamation-triangle"
-              />
-              <Tag 
-                v-else-if="getDaysOverdue(slotProps.data.date) > 0" 
-                severity="warning" 
-                value="Media"
-              />
-              <Tag 
-                v-else 
-                severity="info" 
-                value="Normal"
-              />
-            </template>
-          </Column>
           <Column field="date" header="Fecha" />
           <Column header="Paciente">
             <template #body="slotProps">
-              <router-link 
-                v-if="slotProps.data.patientId" 
-                :to="`/app/patients/${slotProps.data.patientId}`" 
+              <router-link
+                v-if="slotProps.data.patientId"
+                :to="`/app/patients/${slotProps.data.patientId}`"
                 class="patient-link"
               >
                 {{ slotProps.data.patient }}
@@ -136,21 +116,21 @@ async function loadPendingExams() {
   try {
     const data = await ExamService.getPending();
     // Map backend data to expected format
-    exams.value = (Array.isArray(data) ? data : []).map(exam => ({
+    exams.value = (Array.isArray(data) ? data : []).map((exam) => ({
       id: exam.id,
-      date: exam.fecha ? new Date(exam.fecha).toISOString().split('T')[0] : '',
-      patient: exam.nombre_paciente || 'Sin nombre',
+      date: exam.fecha ? new Date(exam.fecha).toISOString().split("T")[0] : "",
+      patient: exam.nombre_paciente || "Sin nombre",
       patientId: exam.paciente_id,
-      examType: exam.tipo || 'Sin tipo',
+      examType: exam.tipo || "Sin tipo",
       file: exam.s3_key || null,
     }));
   } catch (error) {
-    console.error('Error loading pending exams:', error);
+    console.error("Error loading pending exams:", error);
     toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: 'No se pudieron cargar los exámenes pendientes',
-      life: 3000
+      severity: "error",
+      summary: "Error",
+      detail: "No se pudieron cargar los exámenes pendientes",
+      life: 3000,
     });
     exams.value = [];
   }
@@ -178,27 +158,27 @@ function openUploadDialog(exam) {
 async function onExamUploaded({ exam, file }) {
   try {
     // Upload file to backend
-    await ExamService.uploadPdf(exam.id, file)
-    
+    await ExamService.uploadPdf(exam.id, file);
+
     // Update local state
-    const target = exams.value.find((e) => e.id === exam.id)
+    const target = exams.value.find((e) => e.id === exam.id);
     if (target) {
-      target.file = file.name
-      target.estado = 'COMPLETADO'
+      target.file = file.name;
+      target.estado = "COMPLETADO";
     }
-    
-    uploadDialogVisible.value = false
-    
+
+    uploadDialogVisible.value = false;
+
     // Optionally reload exams
-    await loadPendingExams()
+    await loadPendingExams();
   } catch (error) {
-    console.error('Error uploading exam:', error)
+    console.error("Error uploading exam:", error);
     toast.add({
-      severity: 'error',
-      summary: 'Error al subir archivo',
-      detail: 'No se pudo subir el archivo',
-      life: 3000
-    })
+      severity: "error",
+      summary: "Error al subir archivo",
+      detail: "No se pudo subir el archivo",
+      life: 3000,
+    });
   }
 }
 </script>
