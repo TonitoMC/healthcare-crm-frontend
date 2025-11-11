@@ -7,20 +7,19 @@
     :pt="{
       root: { class: 'border-round-xl overflow-hidden' },
       header: {
-        class:
-          'bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-4',
+        class: 'bg-primary px-6 py-4',
       },
       content: { class: 'px-6 py-4' },
     }"
   >
     <template #header>
       <div class="flex align-items-center gap-3">
-        <div class="bg-white bg-opacity-20 border-circle p-3">
-          <i class="pi pi-calendar-plus text-white text-2xl"></i>
+        <div class="bg-primary-reverse surface-overlay border-circle p-3">
+          <i class="pi pi-calendar-plus text-primary text-2xl"></i>
         </div>
         <div>
-          <h2 class="m-0 text-2xl font-bold">Nueva Cita Médica</h2>
-          <p class="m-0 mt-1 text-sm opacity-90">
+          <h2 class="m-0 text-2xl font-bold text-primary-contrast">Nueva Cita Médica</h2>
+          <p class="m-0 mt-1 text-sm text-primary-contrast" style="opacity: 0.9">
             Seleccione un paciente existente o cree uno nuevo
           </p>
         </div>
@@ -100,6 +99,7 @@ import { AppointmentService } from "@/services/appointmentService";
 import ExistingPatientForm from "./ExistingPatientForm.vue";
 import NewPatientForm from "./NewPatientForm.vue";
 import { getErrorMessage } from "@/utils/errorMessages";
+import { buildClinicDateTime } from "@/utils/time";
 
 const props = defineProps({
   visible: Boolean,
@@ -169,25 +169,11 @@ const save = async () => {
 
   loading.value = true;
   try {
-    // Helper para generar RFC3339 local con offset evitando conversión a UTC (Z)
-    const toLocalRFC3339 = (d) => {
-      const pad = (n) => String(n).padStart(2, "0");
-      const year = d.getFullYear();
-      const month = pad(d.getMonth() + 1);
-      const day = pad(d.getDate());
-      const hour = pad(d.getHours());
-      const minute = pad(d.getMinutes());
-      const second = pad(d.getSeconds());
-      const tzOffsetMinutes = -d.getTimezoneOffset(); // minutos este de UTC
-      const sign = tzOffsetMinutes >= 0 ? "+" : "-";
-      const abs = Math.abs(tzOffsetMinutes);
-      const tzH = pad(Math.floor(abs / 60));
-      const tzM = pad(abs % 60);
-      return `${year}-${month}-${day}T${hour}:${minute}:${second}${sign}${tzH}:${tzM}`;
-    };
-
-    // Construir fecha a enviar (preserva hora local exacta)
-    const apptDateStr = toLocalRFC3339(form.value.fecha);
+    // Formatear usando util central (offset fijo clínica)
+  // Construir fecha clínica a partir de componentes (evita desplazamientos TZ del navegador)
+  const datePart = `${form.value.fecha.getFullYear()}-${String(form.value.fecha.getMonth()+1).padStart(2,'0')}-${String(form.value.fecha.getDate()).padStart(2,'0')}`;
+  const timePart = `${String(form.value.fecha.getHours()).padStart(2,'0')}:${String(form.value.fecha.getMinutes()).padStart(2,'0')}`;
+  const apptDateStr = buildClinicDateTime(datePart, timePart);
 
     if (activeTab.value === "existing") {
       // Crear cita para paciente existente usando el backend

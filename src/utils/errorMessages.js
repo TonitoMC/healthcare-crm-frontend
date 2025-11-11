@@ -5,6 +5,12 @@
  */
 export function getErrorMessage(error) {
   const backendError = error.response?.data?.error || "";
+  const status = error.response?.status;
+
+  // Errores de conflicto de citas (409 Conflict)
+  if (status === 409) {
+    return backendError || "Ya existe una cita en ese horario. Recuerda que debe haber 5 minutos entre citas.";
+  }
 
   // Errores de horarios
   if (backendError.includes("El día está cerrado")) {
@@ -15,12 +21,19 @@ export function getErrorMessage(error) {
     backendError.includes(
       "El horario solicitado está fuera del rango permitido",
     ) ||
-    backendError.includes("time outside working hours")
+    backendError.includes("time outside working hours") ||
+    backendError.includes("fuera del horario laboral")
   ) {
     return "El horario seleccionado está fuera del horario laboral. Horarios disponibles: Lun-Vie 9:00-13:00 y 15:00-18:00, Sáb 9:00-13:00.";
   }
 
-  // Conflictos de citas
+  // Conflictos de citas (legacy - mantener por compatibilidad)
+  if (
+    backendError.includes("time slot conflict") ||
+    backendError.includes("appointments must have 5 minute gap")
+  ) {
+    return "Ya existe una cita en ese horario. Recuerda que debe haber 5 minutos entre citas.";
+  }
   if (backendError.includes("time slot conflict")) {
     return "Ya existe una cita en ese horario. Por favor, seleccione otro horario disponible.";
   }
@@ -42,6 +55,11 @@ export function getErrorMessage(error) {
   // Errores de conexión
   if (!error.response) {
     return "No se pudo conectar con el servidor. Verifique su conexión a internet.";
+  }
+
+  // Permisos
+  if (status === 403 || /no autorizado|acceso denegado|forbidden/i.test(backendError)) {
+    return "No tiene permisos para realizar esta acción.";
   }
 
   // Error genérico si no coincide con ningún patrón

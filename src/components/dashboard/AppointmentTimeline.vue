@@ -26,7 +26,8 @@
         <!-- Appointment -->
         <div
           v-if="slotProps.item.type === 'appointment'"
-          class="flex flex-column gap-2 w-full p-3 border-round shadow-1 surface-card mb-3"
+          class="flex flex-column gap-2 w-full p-3 border-round shadow-1 surface-card mb-3 cursor-pointer"
+          @click="onEdit(slotProps.item)"
         >
           <div
             class="flex justify-content-between align-items-center flex-wrap gap-2"
@@ -52,6 +53,15 @@
                 :severity="statusColor(slotProps.item.status)"
                 size="small"
               />
+              <!-- Edit button -->
+              <Button
+                v-if="slotProps.item.id"
+                label="Editar"
+                icon="pi pi-pencil"
+                size="small"
+                outlined
+                @click.stop="onEdit(slotProps.item)"
+              />
               <Button
                 v-if="
                   slotProps.item.patientId &&
@@ -60,7 +70,7 @@
                 label="Ir a Paciente"
                 icon="pi pi-user"
                 size="small"
-                @click="
+                @click.stop="
                   $router.push(`/app/patients/${slotProps.item.patientId}`)
                 "
               />
@@ -112,7 +122,14 @@ const props = defineProps({
   selectedDate: { type: Date, default: () => new Date() },
 });
 
-const emit = defineEmits(["create-appointment"]);
+const emit = defineEmits(["create-appointment", "edit-appointment"]);
+
+function onEdit(item) {
+  console.log("🔵 AppointmentTimeline - onEdit called with:", item);
+  // wrapper para evitar llamar emit directo desde template
+  emit("edit-appointment", item);
+  console.log("🔵 AppointmentTimeline - edit-appointment emitted");
+}
 
 const isWithinOneHour = (timeStr) => {
   if (!timeStr) return false;
@@ -200,6 +217,7 @@ const timelineItems = computed(() => {
 
     // Build gaps + appointments within this working range
     let prevEnd = rangeStart;
+    const GAP_MINUTES = 5; // Gap mínimo entre citas
 
     for (const appt of validAppts) {
       const gap = toMinutes(appt.start) - toMinutes(prevEnd);
@@ -214,8 +232,17 @@ const timelineItems = computed(() => {
         type: "appointment",
         patientId: appt.patientId ?? appt.paciente_id,
         start: appt.start,
+        end: appt.end,
+        rfc3339: appt.rfc3339,
+        id: appt.id,
       });
-      prevEnd = appt.end;
+      
+      // Agregar el gap de 5 minutos después de la cita
+      const endMins = toMinutes(appt.end);
+      const endWithGapMins = endMins + GAP_MINUTES;
+      const pad = (n) => String(n).padStart(2, "0");
+      const toHHMM = (mins) => `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`;
+      prevEnd = toHHMM(endWithGapMins);
     }
 
     // Add remaining free time at end of working range

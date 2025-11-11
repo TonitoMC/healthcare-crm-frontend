@@ -46,6 +46,24 @@ export const AppointmentService = {
   },
 
   /**
+   * Get appointments for a date range
+   * @param {string} startDate - Start date in YYYY-MM-DD format
+   * @param {string} endDate - End date in YYYY-MM-DD format
+   * @returns {Promise<Array>} List of appointments
+   */
+  async getByDateRange(startDate, endDate) {
+    try {
+      const { data } = await api.get('/appointments', {
+        params: { start: startDate, end: endDate }
+      });
+      return data;
+    } catch (error) {
+      console.error("Error fetching appointments by date range:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Create a new appointment
    * @param {Object} appointmentData - Appointment creation data
    * @returns {Promise<Object>} Created appointment ID

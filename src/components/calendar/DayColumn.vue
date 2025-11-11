@@ -21,7 +21,7 @@
       </div>
 
       <div v-for="slot in group.slots" :key="slot.time" class="mb-1">
-        <SlotItem :slot="slot" />
+        <SlotItem :slot="slot" @click="handleSlotClick(slot)" />
       </div>
     </div>
   </div>
@@ -30,4 +30,10 @@
 <script setup>
 import SlotItem from "@/components/calendar/SlotItem.vue";
 defineProps({ slots: Array });
+const emit = defineEmits(['slot-click']);
+
+function handleSlotClick(slot) {
+  console.log('🔵 [DayColumn] Slot clicked, emitting to parent:', slot);
+  emit('slot-click', slot);
+}
 </script>

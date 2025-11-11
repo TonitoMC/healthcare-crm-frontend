@@ -30,13 +30,13 @@
               >
                 {{ activity.patient_name }}
               </router-link>
-              <div class="activity-time text-500 text-sm">
+              <div class="activity-time text-color-secondary text-sm">
                 {{ formatTimestamp(activity.timestamp) }}
               </div>
             </div>
           </div>
         </div>
-        <div v-else class="text-center text-500 p-4">
+        <div v-else class="text-center text-color-secondary p-4">
           No hay actividad reciente
         </div>
       </div>

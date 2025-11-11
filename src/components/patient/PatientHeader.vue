@@ -38,7 +38,7 @@
 
         <!-- 🧱 Divider (no width, just a border) -->
         <div
-          class="hidden md:block align-self-stretch w-0 border-right-1 border-300"
+          class="hidden md:block align-self-stretch w-0 border-right-1 surface-border"
         ></div>
 
         <!-- 🩺 Right: Antecedentes (exact 50%) -->

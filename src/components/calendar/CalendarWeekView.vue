@@ -40,7 +40,7 @@
           <!-- Free slot -->
           <div
             v-else
-            class="p-2 border-round-md border-1 border-dashed surface-100 border-gray-300 flex justify-content-between align-items-center"
+            class="p-2 border-round-md border-1 border-dashed surface-100 surface-border flex justify-content-between align-items-center"
           >
             <span class="italic text-xs md:text-sm text-color-secondary">
               Libre
@@ -57,6 +57,7 @@
 
 <script setup>
 import { computed } from "vue";
+import { hhmmToMinutes, minutesToHHMM, clinicDateString } from "@/utils/time.js";
 
 const props = defineProps({
   currentDate: { type: Date, required: true },
@@ -122,12 +123,8 @@ const allAppointments = [
   },
 ];
 
-const toMinutes = (hhmm) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-};
-const pad = (n) => String(n).padStart(2, "0");
-const toHHMM = (m) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+const toMinutes = hhmmToMinutes;
+const toHHMM = minutesToHHMM;
 
 function getSlotsFor(day) {
   const bhStart = "08:00";

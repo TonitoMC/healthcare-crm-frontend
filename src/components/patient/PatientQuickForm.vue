@@ -8,28 +8,15 @@
       
       <div class="flex flex-column gap-3">
         <div class="field">
-          <label for="nombre" class="font-semibold">Nombre completo *</label>
+          <label for="nombre" class="font-semibold">Nombre Completo *</label>
           <InputText 
             id="nombre" 
             v-model="form.nombre" 
             :invalid="!!errors.nombre"
             class="w-full" 
-            placeholder="Ej: Juan Pérez García"
+            placeholder="Ej: Juan Pérez González"
           />
           <small v-if="errors.nombre" class="p-error">{{ errors.nombre }}</small>
-        </div>
-
-        <div class="field">
-          <label for="email" class="font-semibold">Email</label>
-          <InputText 
-            id="email" 
-            v-model="form.email" 
-            type="email"
-            :invalid="!!errors.email"
-            class="w-full" 
-            placeholder="juan@example.com"
-          />
-          <small v-if="errors.email" class="p-error">{{ errors.email }}</small>
         </div>
 
         <div class="field">
@@ -39,9 +26,38 @@
             v-model="form.telefono" 
             :invalid="!!errors.telefono"
             class="w-full" 
-            placeholder="Ej: 555-1234"
+            placeholder="8888-8888"
           />
           <small v-if="errors.telefono" class="p-error">{{ errors.telefono }}</small>
+        </div>
+
+        <div class="field">
+          <label for="fecha_nacimiento" class="font-semibold">Fecha de Nacimiento *</label>
+          <DatePicker
+            id="fecha_nacimiento"
+            v-model="form.fecha_nacimiento"
+            :invalid="!!errors.fecha_nacimiento"
+            dateFormat="dd/mm/yy"
+            placeholder="dd/mm/aaaa"
+            class="w-full"
+            :pt="{ input: { class: 'w-full' } }"
+          />
+          <small v-if="errors.fecha_nacimiento" class="p-error">{{ errors.fecha_nacimiento }}</small>
+        </div>
+
+        <div class="field">
+          <label for="sexo" class="font-semibold">Sexo *</label>
+          <Select
+            id="sexo"
+            v-model="form.sexo"
+            :invalid="!!errors.sexo"
+            :options="sexOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Seleccionar"
+            class="w-full"
+          />
+          <small v-if="errors.sexo" class="p-error">{{ errors.sexo }}</small>
         </div>
 
         <div class="flex justify-content-end gap-2 mt-2">
@@ -56,6 +72,8 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import InputText from 'primevue/inputtext'
+import DatePicker from 'primevue/datepicker'
+import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -63,16 +81,23 @@ import { PatientService } from '@/services/patientService'
 
 const emit = defineEmits(['success', 'cancel'])
 
+const sexOptions = [
+  { label: "Masculino", value: "M" },
+  { label: "Femenino", value: "F" },
+]
+
 const form = reactive({
   nombre: '',
-  email: '',
-  telefono: ''
+  telefono: '',
+  fecha_nacimiento: null,
+  sexo: null
 })
 
 const errors = reactive({
   nombre: '',
-  email: '',
-  telefono: ''
+  telefono: '',
+  fecha_nacimiento: '',
+  sexo: ''
 })
 
 const loading = ref(false)
@@ -80,8 +105,9 @@ const error = ref(null)
 
 function validateForm() {
   errors.nombre = ''
-  errors.email = ''
   errors.telefono = ''
+  errors.fecha_nacimiento = ''
+  errors.sexo = ''
   
   let isValid = true
   
@@ -90,17 +116,31 @@ function validateForm() {
     isValid = false
   }
   
-  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    errors.email = 'Email inválido'
-    isValid = false
-  }
-  
   if (!form.telefono.trim()) {
     errors.telefono = 'El teléfono es obligatorio'
     isValid = false
   }
   
+  if (!form.fecha_nacimiento) {
+    errors.fecha_nacimiento = 'La fecha de nacimiento es obligatoria'
+    isValid = false
+  }
+  
+  if (!form.sexo) {
+    errors.sexo = 'El sexo es obligatorio'
+    isValid = false
+  }
+  
   return isValid
+}
+
+function formatDateToYYYYMMDD(date) {
+  if (!date) return null
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 async function handleSubmit() {
@@ -110,15 +150,23 @@ async function handleSubmit() {
   error.value = null
   
   try {
-    const newPatient = await PatientService.create({
+    const birthDateStr = formatDateToYYYYMMDD(form.fecha_nacimiento)
+    
+    const payload = {
       nombre: form.nombre.trim(),
-      email: form.email.trim() || null,
-      telefono: form.telefono.trim()
-    })
+      telefono: form.telefono.trim() || null,
+      fecha_nacimiento: birthDateStr,
+      sexo: form.sexo
+    }
+    
+    console.log('📤 Enviando payload:', payload)
+    
+    const newPatient = await PatientService.createPatient(payload)
     emit('success', newPatient)
   } catch (e) {
-    error.value = 'Error al crear el paciente. Inténtelo de nuevo.'
-    console.error('Error creating patient:', e)
+    console.error('❌ Error completo:', e)
+    console.error('❌ Response data:', e?.response?.data)
+    error.value = e?.response?.data?.error || 'Error al crear el paciente. Inténtelo de nuevo.'
   } finally {
     loading.value = false
   }

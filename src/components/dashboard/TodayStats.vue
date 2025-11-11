@@ -18,8 +18,8 @@
           <div class="stat-card p-3 border-round surface-border" style="border-left: 4px solid var(--primary-color)">
             <div class="flex align-items-center justify-content-between">
               <div>
-                <div class="text-500 font-medium mb-2">Citas Programadas</div>
-                <div class="text-900 text-4xl font-bold">{{ stats.total_appointments_today }}</div>
+                <div class="text-color-secondary font-medium mb-2">Citas Programadas</div>
+                <div class="text-color text-4xl font-bold">{{ stats.total_appointments_today }}</div>
               </div>
               <i class="pi pi-calendar text-4xl text-primary"></i>
             </div>
@@ -30,8 +30,8 @@
           <div class="stat-card p-3 border-round surface-border" style="border-left: 4px solid var(--orange-500)">
             <div class="flex align-items-center justify-content-between">
               <div>
-                <div class="text-500 font-medium mb-2">Exámenes Pendientes</div>
-                <div class="text-900 text-4xl font-bold">{{ stats.pending_exams_total }}</div>
+                <div class="text-color-secondary font-medium mb-2">Exámenes Pendientes</div>
+                <div class="text-color text-4xl font-bold">{{ stats.pending_exams_total }}</div>
               </div>
               <i class="pi pi-file-pdf text-4xl text-orange-500"></i>
             </div>
@@ -42,8 +42,8 @@
           <div class="stat-card p-3 border-round surface-border" style="border-left: 4px solid var(--green-500)">
             <div class="flex align-items-center justify-content-between">
               <div>
-                <div class="text-500 font-medium mb-2">Citas Completadas</div>
-                <div class="text-900 text-4xl font-bold">{{ stats.completed_appointments }}</div>
+                <div class="text-color-secondary font-medium mb-2">Citas Completadas</div>
+                <div class="text-color text-4xl font-bold">{{ stats.completed_appointments }}</div>
               </div>
               <i class="pi pi-check-circle text-4xl text-green-500"></i>
             </div>

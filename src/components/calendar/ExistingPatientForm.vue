@@ -6,7 +6,7 @@
       <div class="col-12 lg:col-6 p-0">
         <div class="px-2">
           <label
-            class="block font-medium text-900"
+            class="block font-medium text-color"
             :class="hasPatient ? 'mb-1' : 'mb-2'"
           >
             <i class="pi pi-search mr-2 text-primary"></i>
@@ -56,10 +56,10 @@
         <div class="px-2">
           <div
             v-if="!hasPatient"
-            class="text-center py-5 surface-section border-round-lg border-1 border-dashed border-200 h-full flex flex-column align-items-center justify-content-center"
+            class="text-center py-5 surface-section border-round-lg border-1 border-dashed surface-border h-full flex flex-column align-items-center justify-content-center"
           >
-            <i class="pi pi-search text-3xl text-400 mb-2"></i>
-            <p class="text-600 m-0 text-sm">
+            <i class="pi pi-search text-3xl text-color-secondary mb-2"></i>
+            <p class="text-color-secondary m-0 text-sm">
               Seleccione un paciente para continuar
             </p>
           </div>
@@ -70,12 +70,12 @@
       <div v-if="hasPatient" class="col-12 p-0">
         <div class="px-2">
           <div
-            class="surface-card p-4 border-round-lg border-1 border-200 shadow-1 w-full"
+            class="surface-card p-4 border-round-lg border-1 surface-border shadow-1 w-full"
           >
             <div class="flex align-items-start gap-3 flex-wrap">
               <!-- Avatar: ocultar hasta md para evitar aplastamiento en anchos intermedios -->
               <div
-                class="flex align-items-center justify-content-center bg-primary-100 text-primary-700 border-circle hidden md:flex"
+                class="flex align-items-center justify-content-center bg-primary text-primary-contrast border-circle hidden md:flex"
                 style="width: 3rem; height: 3rem"
               >
                 <i class="pi pi-user text-xl"></i>
@@ -84,13 +84,13 @@
               <div class="flex-1 min-w-0">
                 <!-- Nombre: permite wrap hasta md, luego una sola línea -->
                 <div
-                  class="font-semibold text-xl text-900 mb-1 line-height-3"
+                  class="font-semibold text-xl text-color mb-1 line-height-3"
                   :class="'text-wrap md:overflow-hidden md:text-overflow-ellipsis md:whitespace-nowrap'"
                   style="overflow: hidden"
                 >
                   {{ localPatient.nombre }}
                 </div>
-                <div class="flex align-items-center gap-2 text-600">
+                <div class="flex align-items-center gap-2 text-color-secondary">
                   <i class="pi pi-phone text-sm"></i>
                   <span
                     class="text-sm"
@@ -105,7 +105,7 @@
                 </div>
                 <div
                   v-if="localPatient.edad"
-                  class="flex align-items-center gap-2 text-600 mt-1"
+                  class="flex align-items-center gap-2 text-color-secondary mt-1"
                 >
                   <i class="pi pi-calendar text-sm"></i>
                   <span class="text-sm">{{ localPatient.edad }} años</span>
@@ -134,13 +134,12 @@
       <!-- Fila 2, Col 1: Fecha y Hora -->
       <div class="col-12 lg:col-6 p-0 mt-2">
         <div class="px-2">
-          <label class="block mb-2 font-medium text-900">
+          <label class="block mb-2 font-medium text-color">
             <i class="pi pi-calendar mr-2 text-primary"></i>
             Fecha y Hora
           </label>
           <DatePicker
             v-model="localDate"
-            :disabled="!hasPatient"
             showTime
             hourFormat="24"
             dateFormat="dd/mm/yy"
@@ -160,16 +159,15 @@
       <!-- Fila 2, Col 2: Duración -->
       <div class="col-12 lg:col-6 p-0 mt-2">
         <div class="px-2">
-          <label class="block mb-2 font-medium text-900">
+          <label class="block mb-2 font-medium text-color">
             <i class="pi pi-clock mr-2 text-primary"></i>
             Duración (minutos)
           </label>
           <InputNumber
             v-model="localDuration"
-            :disabled="!hasPatient"
-            :min="15"
+            :min="5"
             :max="180"
-            :step="15"
+            :step="5"
             showButtons
             buttonLayout="horizontal"
             incrementButtonIcon="pi pi-plus"
@@ -183,7 +181,7 @@
             }"
           />
           <small class="text-color-secondary mt-1 block"
-            >Intervalos de 15 minutos</small
+            >Intervalos de 5 minutos</small
           >
         </div>
       </div>
@@ -235,8 +233,8 @@ watch(
   () => props.duration,
   (newVal, oldVal) => {
     if (newVal !== null && newVal !== undefined && newVal !== oldVal) {
-      const rounded = Math.round(newVal / 15) * 15;
-      const clamped = Math.max(15, Math.min(180, rounded));
+      const rounded = Math.round(newVal / 5) * 5;
+      const clamped = Math.max(5, Math.min(180, rounded));
 
       if (clamped !== newVal) {
         // Redondear inmediatamente
@@ -244,7 +242,7 @@ watch(
         toast.add({
           severity: "info",
           summary: "Duración ajustada",
-          detail: `Ajustado a ${clamped} minutos (intervalos de 15)`,
+          detail: `Ajustado a ${clamped} minutos (intervalos de 5)`,
           life: 3000,
         });
       }
@@ -255,15 +253,15 @@ watch(
 const handleDurationBlur = () => {
   const val = localDuration.value;
   if (val !== null && val !== undefined) {
-    const rounded = Math.round(val / 15) * 15;
-    const clamped = Math.max(15, Math.min(180, rounded));
+    const rounded = Math.round(val / 5) * 5;
+    const clamped = Math.max(5, Math.min(180, rounded));
 
     if (clamped !== val) {
       localDuration.value = clamped;
       toast.add({
         severity: "info",
         summary: "Duración ajustada",
-        detail: `Ajustado a ${clamped} minutos (intervalos de 15)`,
+        detail: `Ajustado a ${clamped} minutos (intervalos de 5)`,
         life: 3000,
       });
     }
