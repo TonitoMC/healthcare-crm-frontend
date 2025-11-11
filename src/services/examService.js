@@ -1,4 +1,4 @@
-import { api } from '@/services/api'
+import { api } from "@/services/api";
 
 export const ExamService = {
   /**
@@ -8,11 +8,11 @@ export const ExamService = {
    */
   async getById(id) {
     try {
-      const { data } = await api.get(`/exams/${id}`)
-      return data
+      const { data } = await api.get(`/exams/${id}`);
+      return data;
     } catch (error) {
-      console.error('Error fetching exam:', error)
-      throw error
+      console.error("Error fetching exam:", error);
+      throw error;
     }
   },
 
@@ -23,11 +23,11 @@ export const ExamService = {
    */
   async getByPatient(patientId) {
     try {
-      const { data } = await api.get(`/exams/patient/${patientId}`)
-      return data
+      const { data } = await api.get(`/exams/patient/${patientId}`);
+      return data;
     } catch (error) {
-      console.error('Error fetching patient exams:', error)
-      throw error
+      console.error("Error fetching patient exams:", error);
+      throw error;
     }
   },
 
@@ -38,11 +38,11 @@ export const ExamService = {
    */
   async create(examData) {
     try {
-      const { data } = await api.post('/exams', examData)
-      return data
+      const { data } = await api.post("/exams", examData);
+      return data;
     } catch (error) {
-      console.error('Error creating exam:', error)
-      throw error
+      console.error("Error creating exam:", error);
+      throw error;
     }
   },
 
@@ -54,18 +54,18 @@ export const ExamService = {
    */
   async uploadPdf(id, file) {
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      
+      const formData = new FormData();
+      formData.append("file", file);
+
       const { data } = await api.post(`/exams/${id}/upload`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-      return data
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return data;
     } catch (error) {
-      console.error('Error uploading PDF:', error)
-      throw error
+      console.error("Error uploading PDF:", error);
+      throw error;
     }
   },
 
@@ -75,7 +75,7 @@ export const ExamService = {
    * @returns {string} Download URL
    */
   getDownloadUrl(id) {
-    return `${api.defaults.baseURL}/exams/${id}/download`
+    return `${api.defaults.baseURL}/exams/${id}/file`;
   },
 
   /**
@@ -85,11 +85,11 @@ export const ExamService = {
    */
   async delete(id) {
     try {
-      const { data } = await api.delete(`/exams/${id}`)
-      return data
+      const { data } = await api.delete(`/exams/${id}`);
+      return data;
     } catch (error) {
-      console.error('Error deleting exam:', error)
-      throw error
+      console.error("Error deleting exam:", error);
+      throw error;
     }
   },
 
@@ -99,11 +99,11 @@ export const ExamService = {
    */
   async getPending() {
     try {
-      const { data } = await api.get('/exams/pending')
-      return data
+      const { data } = await api.get("/exams/pending");
+      return data;
     } catch (error) {
-      console.error('Error fetching pending exams:', error)
-      throw error
+      console.error("Error fetching pending exams:", error);
+      throw error;
     }
   },
 
@@ -113,11 +113,11 @@ export const ExamService = {
    */
   async getCompleted() {
     try {
-      const { data } = await api.get('/exams/completed')
-      return data
+      const { data } = await api.get("/exams/completed");
+      return data;
     } catch (error) {
-      console.error('Error fetching completed exams:', error)
-      throw error
+      console.error("Error fetching completed exams:", error);
+      throw error;
     }
-  }
-}
+  },
+};

@@ -43,22 +43,36 @@
 
         <Column header="Acciones">
           <template #body="{ data }">
-            <div class="flex gap-2">
+            <div class="flex align-items-center gap-2">
+              <!-- Upload if pending -->
               <Button
                 v-if="data.estado === 'PENDIENTE'"
+                label="Subir PDF"
                 icon="pi pi-upload"
                 text
                 size="small"
+                class="text-primary"
                 @click="openUploadDialog(data)"
               />
 
-              <Button
-                v-else
-                icon="pi pi-file-pdf"
-                size="small"
-                text
-                @click="viewPdf(data)"
-              />
+              <!-- Open & download if file exists -->
+              <div v-else class="flex gap-2">
+                <Button
+                  label="Abrir"
+                  icon="pi pi-external-link"
+                  text
+                  size="small"
+                  class="text-primary"
+                  @click="viewPdf(data)"
+                />
+                <Button
+                  icon="pi pi-download"
+                  text
+                  size="small"
+                  class="text-primary"
+                  @click="downloadPdf(data)"
+                />
+              </div>
             </div>
           </template>
         </Column>
@@ -94,8 +108,7 @@ import Column from "primevue/column";
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
 import FileUpload from "primevue/fileupload";
-import Tag from "primevue/tag";
-import { useExamHandler } from "../../composables/useExamHandler";
+import { ExamService } from "@/services/examService";
 
 /**
  * Props
@@ -107,25 +120,33 @@ const props = defineProps({
   exams: { type: Array, required: true },
 });
 
-const {
-  createExam: createExamService,
-  uploadPdf,
-  loadExams,
-} = useExamHandler();
-
 const showUploadDialog = ref(false);
 const newExamTipo = ref("");
 const selectedFile = ref(null);
 const currentExam = ref(null);
+const exams = ref([...props.exams]);
 
 async function createExam() {
   if (!newExamTipo.value.trim()) return;
-  await createExamService({
-    paciente_id: props.patientId,
-    tipo: newExamTipo.value,
-  });
-  await loadExams(props.patientId);
-  newExamTipo.value = "";
+  try {
+    await ExamService.create({
+      paciente_id: props.patientId,
+      tipo: newExamTipo.value,
+    });
+    await loadExams();
+    newExamTipo.value = "";
+  } catch (error) {
+    console.error("Error creating exam:", error);
+  }
+}
+
+async function loadExams() {
+  try {
+    const data = await ExamService.getByPatient(props.patientId);
+    exams.value = data;
+  } catch (error) {
+    console.error("Error loading exams:", error);
+  }
 }
 
 function openUploadDialog(exam) {
@@ -140,8 +161,8 @@ function handleFileSelect(event) {
 async function uploadFile() {
   if (!selectedFile.value || !currentExam.value) return;
   try {
-    await uploadPdf(currentExam.value.id, selectedFile.value);
-    await loadExams(props.patientId);
+    await ExamService.uploadPdf(currentExam.value.id, selectedFile.value);
+    await loadExams();
     showUploadDialog.value = false;
     selectedFile.value = null;
   } catch (error) {
@@ -155,21 +176,65 @@ async function viewPdf(exam) {
     if (!savedAuth) return console.error("No authentication token found");
     const { token } = JSON.parse(savedAuth);
 
-    const response = await fetch(
-      `http://localhost:8080/api/exams/${exam.id}/download`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    // Request the PDF file from the backend
+    const response = await fetch(ExamService.getDownloadUrl(exam.id), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) throw new Error("Failed to download PDF");
+
+    // Convert to blob and generate a local object URL
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Open a new tab and embed the PDF
+    const tab = window.open("", "_blank");
+    tab.document.title = exam.tipo || "Examen";
+    const safeName = (exam.tipo || `examen-${exam.id}`)
+      .replace(/\s+/g, "_")
+      .replace(/[^\w_-]/g, ""); // make sure it’s URL-safe
+
+    tab.document.body.innerHTML = `
+      <embed src="${url}" type="application/pdf" width="100%" height="100%">
+    `;
+
+    // Replace the URL in the new tab with a friendly virtual path
+    tab.history.replaceState({}, safeName, `${safeName}.pdf`);
+
+    // Clean up the blob after a bit
+    setTimeout(() => window.URL.revokeObjectURL(url), 15000);
+  } catch (error) {
+    console.error("Error viewing PDF:", error);
+  }
+}
+
+async function downloadPdf(exam) {
+  try {
+    const savedAuth = localStorage.getItem("jwt");
+    if (!savedAuth) return console.error("No authentication token found");
+    const { token } = JSON.parse(savedAuth);
+
+    const response = await fetch(ExamService.getDownloadUrl(exam.id), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
     if (!response.ok) throw new Error("Failed to download PDF");
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+
+    // Generate a clean filename (e.g. Paquimetria.pdf)
+    const safeName = (exam.tipo || `examen-${exam.id}`)
+      .replace(/\s+/g, "_")
+      .replace(/[^\w_-]/g, "");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${safeName}.pdf`;
+    link.click();
+
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
   } catch (error) {
-    console.error("Error viewing PDF:", error);
+    console.error("Error downloading PDF:", error);
   }
 }
 </script>
