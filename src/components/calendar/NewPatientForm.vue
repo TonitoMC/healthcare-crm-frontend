@@ -93,10 +93,6 @@
             placeholder="Seleccione fecha y hora"
             :pt="{ input: { class: 'w-full p-3' } }"
           />
-          <small class="text-color-secondary mt-1 block">
-            <i class="pi pi-info-circle mr-1"></i>
-            Horarios: L-V 9:00-13:00 y 15:00-18:00 | Sáb 9:00-13:00
-          </small>
         </div>
       </div>
 
@@ -122,9 +118,6 @@
             @blur="handleDurationBlur"
             :pt="{ input: { class: 'w-full p-3' } }"
           />
-          <small class="text-color-secondary mt-1 block"
-            >Intervalos de 5 minutos</small
-          >
         </div>
       </div>
     </div>

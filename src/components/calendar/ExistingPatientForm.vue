@@ -1,24 +1,27 @@
 <template>
-  <div class="p-2">
-    <!-- Grid 2x2: Fila 1 (Buscador | Tarjeta) + Fila 2 (Fecha/Hora | Duración) -->
+  <div class="p-0">
     <div class="grid" style="row-gap: 1rem">
-      <!-- Fila 1, Col 1: Buscador -->
-      <div class="col-12 lg:col-6 p-0">
-        <div class="px-2">
-          <label
-            class="block font-medium text-color"
-            :class="hasPatient ? 'mb-1' : 'mb-2'"
-          >
+      <!-- Label de sección -->
+      <div class="col-12 p-0">
+        <div class="px-2 mb-1">
+          <label class="block font-medium text-color">
             <i class="pi pi-search mr-2 text-primary"></i>
             Buscar Paciente
           </label>
-          <template v-if="!hasPatient">
+        </div>
+      </div>
+
+      <!-- Primera fila: buscador + estado vacío o tarjeta -->
+      <template v-if="!hasPatient">
+        <!-- Fila 1, Col 1: Buscador -->
+        <div class="col-12 lg:col-6 p-0">
+          <div class="px-2">
             <AutoComplete
               v-model="localPatient"
               :suggestions="filteredPatients"
               @complete="searchPatient"
               optionLabel="nombre"
-              placeholder="Escriba al menos 2 caracteres para buscar..."
+              placeholder="Escriba al menos 2 caracteres"
               :minLength="2"
               class="w-full"
               inputClass="w-full p-3"
@@ -44,52 +47,53 @@
                 </div>
               </template>
             </AutoComplete>
-            <small class="text-color-secondary mt-1 block">
-              Escriba el nombre del paciente para buscar en la base de datos
-            </small>
-          </template>
-        </div>
-      </div>
-
-      <!-- Fila 1, Col 2: Empty state cuando no hay paciente -->
-      <div class="col-12 lg:col-6 p-0">
-        <div class="px-2">
-          <div
-            v-if="!hasPatient"
-            class="text-center py-5 surface-section border-round-lg border-1 border-dashed surface-border h-full flex flex-column align-items-center justify-content-center"
-          >
-            <i class="pi pi-search text-3xl text-color-secondary mb-2"></i>
-            <p class="text-color-secondary m-0 text-sm">
-              Seleccione un paciente para continuar
-            </p>
           </div>
         </div>
-      </div>
 
-      <!-- Card full-width debajo del buscador cuando hay paciente seleccionado -->
-      <div v-if="hasPatient" class="col-12 p-0">
+        <!-- Fila 1, Col 2: Empty state -->
+        <div class="col-12 lg:col-6 p-0">
+          <div class="px-2">
+            <div
+              class="text-center surface-section border-round-lg border-1 border-dashed surface-border flex flex-column align-items-center justify-content-center h-full"
+              style="min-height: 10rem"
+            >
+              <i class="pi pi-search text-3xl text-color-secondary mb-2"></i>
+              <p class="text-color-secondary m-0 text-sm">
+                Seleccione un paciente para continuar
+              </p>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Tarjeta del paciente seleccionado (reemplaza toda la fila) -->
+      <div v-else class="col-12 p-0">
         <div class="px-2">
+          <!-- CARD becomes flex and centers its row vertically -->
           <div
-            class="surface-card p-4 border-round-lg border-1 surface-border shadow-1 w-full"
+            class="surface-card p-4 border-round-lg border-1 surface-border shadow-1 w-full flex align-items-center"
+            style="min-height: 10rem; box-sizing: border-box"
           >
-            <div class="flex align-items-start gap-3 flex-wrap">
-              <!-- Avatar: ocultar hasta md para evitar aplastamiento en anchos intermedios -->
+            <!-- Single row inside, centered by parent card -->
+            <div
+              class="w-full flex gap-3 flex-wrap md:flex-nowrap align-items-center"
+            >
+              <!-- Avatar -->
               <div
-                class="flex align-items-center justify-content-center bg-primary text-primary-contrast border-circle hidden md:flex"
+                class="hidden md:flex align-items-center justify-content-center bg-primary text-primary-contrast border-circle flex-shrink-0"
                 style="width: 3rem; height: 3rem"
               >
                 <i class="pi pi-user text-xl"></i>
               </div>
 
+              <!-- Info -->
               <div class="flex-1 min-w-0">
-                <!-- Nombre: permite wrap hasta md, luego una sola línea -->
                 <div
-                  class="font-semibold text-xl text-color mb-1 line-height-3"
-                  :class="'text-wrap md:overflow-hidden md:text-overflow-ellipsis md:whitespace-nowrap'"
-                  style="overflow: hidden"
+                  class="font-semibold text-xl text-color mb-1 line-height-3 md:overflow-hidden md:text-overflow-ellipsis md:whitespace-nowrap"
                 >
                   {{ localPatient.nombre }}
                 </div>
+
                 <div class="flex align-items-center gap-2 text-color-secondary">
                   <i class="pi pi-phone text-sm"></i>
                   <span
@@ -100,9 +104,12 @@
                       white-space: nowrap;
                     "
                     :title="localPatient.telefono || 'Sin teléfono registrado'"
-                    >{{ localPatient.telefono || "Sin teléfono" }}</span
                   >
+                    {{ localPatient.telefono || "Sin teléfono" }}
+                  </span>
                 </div>
+
+                <!-- EDAD (se mantiene) -->
                 <div
                   v-if="localPatient.edad"
                   class="flex align-items-center gap-2 text-color-secondary mt-1"
@@ -112,9 +119,9 @@
                 </div>
               </div>
 
-              <!-- Botón Cambiar: full width hasta md para evitar overflow -->
+              <!-- Botón (derecha en md+, full width abajo en sm) -->
               <div
-                class="ml-auto w-full md:w-auto flex align-items-center mt-2 md:mt-0"
+                class="flex align-items-center justify-content-end w-full md:w-auto mt-2 md:mt-0 md:ml-auto flex-shrink-0"
               >
                 <Button
                   size="small"
@@ -149,10 +156,6 @@
               input: { class: 'w-full p-3' },
             }"
           />
-          <small class="text-color-secondary mt-1 block">
-            <i class="pi pi-info-circle mr-1"></i>
-            Horarios: L-V 9:00-13:00 y 15:00-18:00 | Sáb 9:00-13:00
-          </small>
         </div>
       </div>
 
@@ -180,9 +183,6 @@
               input: { class: 'w-full p-3' },
             }"
           />
-          <small class="text-color-secondary mt-1 block"
-            >Intervalos de 5 minutos</small
-          >
         </div>
       </div>
     </div>

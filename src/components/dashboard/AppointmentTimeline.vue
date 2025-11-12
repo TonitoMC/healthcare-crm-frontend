@@ -13,7 +13,8 @@
           padding-right: 0.75rem;
         `,
         },
-        eventContent: { style: 'flex: 1;' },
+
+        eventContent: { style: 'flex: 1' },
       }"
     >
       <template #opposite="slotProps">
@@ -47,13 +48,8 @@
                 {{ slotProps.item.doctor }}
               </small>
             </div>
+
             <div class="flex gap-2 align-items-center">
-              <Tag
-                :value="slotProps.item.status"
-                :severity="statusColor(slotProps.item.status)"
-                size="small"
-              />
-              <!-- Edit button -->
               <Button
                 v-if="slotProps.item.id"
                 label="Editar"
@@ -62,6 +58,16 @@
                 outlined
                 @click.stop="onEdit(slotProps.item)"
               />
+              <Button
+                v-if="slotProps.item.id"
+                label="Cancelar"
+                icon="pi pi-times"
+                size="small"
+                outlined
+                severity="danger"
+                @click.stop="cancelAppointment(slotProps.item)"
+              />
+
               <Button
                 v-if="
                   slotProps.item.patientId &&
@@ -108,16 +114,13 @@
 
 <script setup>
 import { computed } from "vue";
-import Tag from "primevue/tag";
 import Timeline from "primevue/timeline";
 import Button from "primevue/button";
+import Tag from "primevue/tag";
 
 const props = defineProps({
   appointments: { type: Array, required: true },
-  businessHours: {
-    type: Array,
-    default: () => [],
-  },
+  businessHours: { type: Array, default: () => [] },
   minGapMinutes: { type: Number, default: 15 },
   selectedDate: { type: Date, default: () => new Date() },
 });
@@ -125,10 +128,7 @@ const props = defineProps({
 const emit = defineEmits(["create-appointment", "edit-appointment"]);
 
 function onEdit(item) {
-  console.log("🔵 AppointmentTimeline - onEdit called with:", item);
-  // wrapper para evitar llamar emit directo desde template
   emit("edit-appointment", item);
-  console.log("🔵 AppointmentTimeline - edit-appointment emitted");
 }
 
 const isWithinOneHour = (timeStr) => {
@@ -137,8 +137,7 @@ const isWithinOneHour = (timeStr) => {
   const [hours, minutes] = timeStr.split(":").map(Number);
   const apptTime = new Date();
   apptTime.setHours(hours, minutes, 0, 0);
-  const diffMs = apptTime - now;
-  const diffMins = diffMs / (1000 * 60);
+  const diffMins = (apptTime - now) / (1000 * 60);
   return diffMins >= 0 && diffMins <= 60;
 };
 
@@ -181,29 +180,18 @@ const handleCreateAppointment = (slot) => {
 
 const timelineItems = computed(() => {
   const items = [];
-
-  // If no business hours, show closed message
   if (!props.businessHours || !props.businessHours.length) {
-    return [
-      {
-        time: "Todo el día",
-        type: "blocked",
-        label: "Cerrado",
-      },
-    ];
+    return [{ time: "Todo el día", type: "blocked", label: "Cerrado" }];
   }
 
-  // Sort business hours/working ranges
   const sortedRanges = [...props.businessHours].sort((a, b) =>
     a.start.localeCompare(b.start),
   );
 
-  // Process each working range
   sortedRanges.forEach((range, idx) => {
     const rangeStart = range.start;
     const rangeEnd = range.end;
 
-    // Get appointments within this working range
     const validAppts = props.appointments
       .map((a) => {
         if (!a) return null;
@@ -215,15 +203,13 @@ const timelineItems = computed(() => {
       .filter(Boolean)
       .sort((x, y) => x.start.localeCompare(y.start));
 
-    // Build gaps + appointments within this working range
     let prevEnd = rangeStart;
-    const GAP_MINUTES = 5; // Gap mínimo entre citas
 
     for (const appt of validAppts) {
       const gap = toMinutes(appt.start) - toMinutes(prevEnd);
-      if (gap >= props.minGapMinutes) {
+      if (gap >= props.minGapMinutes)
         items.push({ time: `${prevEnd} - ${appt.start}`, type: "free" });
-      }
+
       items.push({
         time: `${appt.start} - ${appt.end}`,
         patient: appt.patient ?? "Paciente",
@@ -236,30 +222,19 @@ const timelineItems = computed(() => {
         rfc3339: appt.rfc3339,
         id: appt.id,
       });
-      
-      // Agregar el gap de 5 minutos después de la cita
-      const endMins = toMinutes(appt.end);
-      const endWithGapMins = endMins + GAP_MINUTES;
-      const pad = (n) => String(n).padStart(2, "0");
-      const toHHMM = (mins) => `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`;
-      prevEnd = toHHMM(endWithGapMins);
+
+      prevEnd = appt.end;
     }
 
-    // Add remaining free time at end of working range
     const tailGap = toMinutes(rangeEnd) - toMinutes(prevEnd);
-    if (tailGap >= props.minGapMinutes) {
+    if (tailGap >= props.minGapMinutes)
       items.push({ time: `${prevEnd} - ${rangeEnd}`, type: "free" });
-    }
 
-    // Add blocked period between working ranges (e.g., lunch)
     if (idx < sortedRanges.length - 1) {
       const nextRange = sortedRanges[idx + 1];
-      const gapStart = rangeEnd;
-      const gapEnd = nextRange.start;
-
-      if (toMinutes(gapEnd) > toMinutes(gapStart)) {
+      if (toMinutes(nextRange.start) > toMinutes(range.end)) {
         items.push({
-          time: `${gapStart} - ${gapEnd}`,
+          time: `${range.end} - ${nextRange.start}`,
           type: "blocked",
           label: "Descanso",
         });
@@ -277,7 +252,6 @@ const timelineItems = computed(() => {
   text-decoration: none;
   cursor: pointer;
 }
-
 .patient-link:hover {
   text-decoration: underline;
 }

@@ -20,16 +20,19 @@
 
     <!-- 🧩 Scrollable bounded content -->
     <template #content>
-      <div class="flex-1 min-h-0 overflow-y-auto p-3">
-        <AppointmentTimeline
-          :appointments="normalizedAppointments"
-          :business-hours="businessHours"
-          :min-gap-minutes="15"
-          :selected-date="selectedDate"
-          @create-appointment="handleCreateAppointment"
-          @edit-appointment="openEditModal"
-        />
-      </div>
+      <!-- replaced: div.flex-1.min-h-0.overflow-y-auto.p-3 -->
+      <ScrollPanel class="flex-1 min-h-0">
+        <div class="p-3">
+          <AppointmentTimeline
+            :appointments="normalizedAppointments"
+            :business-hours="businessHours"
+            :min-gap-minutes="15"
+            :selected-date="selectedDate"
+            @create-appointment="handleCreateAppointment"
+            @edit-appointment="openEditModal"
+          />
+        </div>
+      </ScrollPanel>
     </template>
   </Card>
 
@@ -57,12 +60,29 @@
       </div>
       <div>
         <label class="text-sm font-medium">Duración (min)</label>
-        <input type="number" min="5" step="5" v-model.number="editDuration" class="p-inputtext w-full" />
+        <input
+          type="number"
+          min="5"
+          step="5"
+          v-model.number="editDuration"
+          class="p-inputtext w-full"
+        />
       </div>
       <div class="flex justify-content-end gap-2 mt-3">
         <Button label="Cancelar" text severity="secondary" @click="closeEdit" />
-        <Button label="Guardar" icon="pi pi-check" :loading="savingEdit" @click="saveEdit" />
-        <Button label="Cancelar Cita" severity="danger" icon="pi pi-trash" :loading="savingEdit" @click="cancelAppt" />
+        <Button
+          label="Guardar"
+          icon="pi pi-check"
+          :loading="savingEdit"
+          @click="saveEdit"
+        />
+        <Button
+          label="Cancelar Cita"
+          severity="danger"
+          icon="pi pi-trash"
+          :loading="savingEdit"
+          @click="cancelAppt"
+        />
       </div>
     </div>
   </Dialog>
@@ -222,25 +242,39 @@ const handleAppointmentCreated = async () => {
 
 function openEditModal(item) {
   console.log("🟢 SingleDayAppointments - openEditModal called with:", item);
-  
+
   if (!item || !item.id) {
     console.error("openEditModal: item is invalid", item);
-    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar la cita', life: 3000 });
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "No se pudo cargar la cita",
+      life: 3000,
+    });
     return;
   }
-  
+
   editingAppt.value = item;
   editTime.value = item.start || "00:00";
-  
+
   const startMins = toMinutes(item.start || "00:00");
   const endMins = toMinutes(item.end || "00:00");
   const diffMins = endMins - startMins;
   editDuration.value = diffMins > 0 ? diffMins : 30;
-  
-  editDate.value = item.rfc3339 ? new Date(item.rfc3339) : new Date(selectedDate.value);
+
+  editDate.value = item.rfc3339
+    ? new Date(item.rfc3339)
+    : new Date(selectedDate.value);
   showEditor.value = true;
-  console.log("🟢 SingleDayAppointments - showEditor set to:", showEditor.value);
-  console.log("🟢 Edit data:", { editTime: editTime.value, editDuration: editDuration.value, editDate: editDate.value });
+  console.log(
+    "🟢 SingleDayAppointments - showEditor set to:",
+    showEditor.value,
+  );
+  console.log("🟢 Edit data:", {
+    editTime: editTime.value,
+    editDuration: editDuration.value,
+    editDate: editDate.value,
+  });
 }
 
 function closeEdit() {
@@ -249,8 +283,8 @@ function closeEdit() {
 }
 
 function toMinutes(hhmm) {
-  if (!hhmm || typeof hhmm !== 'string') {
-    console.warn('toMinutes received invalid input:', hhmm);
+  if (!hhmm || typeof hhmm !== "string") {
+    console.warn("toMinutes received invalid input:", hhmm);
     return 0;
   }
   const [h, m] = hhmm.split(":").map(Number);
@@ -269,16 +303,16 @@ async function saveEdit() {
       duracion: durationSeconds,
     });
     await fetchAppointments();
-    toast.add({ severity: 'success', summary: 'Cita actualizada', life: 2000 });
+    toast.add({ severity: "success", summary: "Cita actualizada", life: 2000 });
     closeEdit();
   } catch (e) {
     console.error("Error updating appointment", e);
     const errorMsg = getErrorMessage(e);
-    toast.add({ 
-      severity: 'error', 
-      summary: 'Error al actualizar la cita', 
-      detail: errorMsg, 
-      life: 5000 
+    toast.add({
+      severity: "error",
+      summary: "Error al actualizar la cita",
+      detail: errorMsg,
+      life: 5000,
     });
   } finally {
     savingEdit.value = false;
@@ -293,16 +327,16 @@ async function cancelAppt() {
   try {
     await AppointmentService.delete(editingAppt.value.id);
     await fetchAppointments();
-    toast.add({ severity: 'success', summary: 'Cita eliminada', life: 2000 });
+    toast.add({ severity: "success", summary: "Cita eliminada", life: 2000 });
     closeEdit();
   } catch (e) {
-    console.error('Error deleting appointment', e);
+    console.error("Error deleting appointment", e);
     const errorMsg = getErrorMessage(e);
-    toast.add({ 
-      severity: 'error', 
-      summary: 'Error al eliminar la cita', 
-      detail: errorMsg, 
-      life: 5000 
+    toast.add({
+      severity: "error",
+      summary: "Error al eliminar la cita",
+      detail: errorMsg,
+      life: 5000,
     });
   } finally {
     savingEdit.value = false;

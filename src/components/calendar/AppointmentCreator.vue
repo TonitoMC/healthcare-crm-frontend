@@ -2,32 +2,31 @@
   <Dialog
     v-model:visible="show"
     modal
-    :style="{ width: '50rem', maxWidth: '95vw' }"
+    :style="{ width: '46rem', maxWidth: '95vw' }"
     @hide="handleClose"
     :pt="{
-      root: { class: 'border-round-xl overflow-hidden' },
-      header: {
-        class: 'bg-primary px-6 py-4',
-      },
-      content: { class: 'px-6 py-4' },
+      root: { class: 'border-round-2xl overflow-hidden' },
+      content: { class: 'px-6 py-0' },
     }"
   >
+    <!-- Header -->
     <template #header>
-      <div class="flex align-items-center gap-3">
-        <div class="bg-primary-reverse surface-overlay border-circle p-3">
-          <i class="pi pi-calendar-plus text-primary text-2xl"></i>
-        </div>
-        <div>
-          <h2 class="m-0 text-2xl font-bold text-primary-contrast">Nueva Cita Médica</h2>
-          <p class="m-0 mt-1 text-sm text-primary-contrast" style="opacity: 0.9">
+      <div class="flex align-items-center gap-3 w-full px-2 py-1 surface-card">
+        <i class="pi pi-calendar-plus text-primary text-3xl"></i>
+        <div class="flex flex-column">
+          <h2 class="m-0 text-xl font-semibold text-color">
+            Nueva Cita Médica
+          </h2>
+          <span class="text-sm text-color-secondary">
             Seleccione un paciente existente o cree uno nuevo
-          </p>
+          </span>
         </div>
       </div>
     </template>
 
-    <Tabs v-model:value="activeTab">
-      <TabList class="mb-4">
+    <!-- Tabs -->
+    <Tabs v-model:value="activeTab" class="w-full">
+      <TabList class="mb-0">
         <Tab value="existing" class="px-4 py-3">
           <i class="pi pi-search mr-2"></i>
           <span class="font-semibold">Paciente Existente</span>
@@ -57,9 +56,11 @@
       </TabPanels>
     </Tabs>
 
+    <!-- Footer -->
+
     <template #footer>
       <div
-        class="flex justify-content-between align-items-center w-full gap-3 px-2 py-3"
+        class="flex justify-content-between align-items-center w-full gap-3 px-3 py-2 border-top-1 surface-border"
       >
         <Button
           label="Cancelar"
@@ -67,7 +68,7 @@
           text
           severity="secondary"
           @click="handleClose"
-          class="px-4 py-3"
+          class="px-3 py-2 text-sm"
         />
         <Button
           :label="
@@ -78,7 +79,7 @@
           :loading="loading"
           :disabled="!canSave"
           severity="success"
-          class="px-5 py-3 font-semibold"
+          class="px-4 py-2 text-sm font-medium"
         />
       </div>
     </template>
@@ -106,7 +107,6 @@ const props = defineProps({
   selectedDate: Date,
   selectedTime: String,
 });
-
 const emit = defineEmits(["update:visible", "created"]);
 const toast = useToast();
 
@@ -129,34 +129,27 @@ const newPatientForm = ref({
 });
 
 const canSave = computed(() => {
-  if (activeTab.value === "existing") {
-    return selectedPatient.value !== null;
-  }
+  if (activeTab.value === "existing") return selectedPatient.value !== null;
   const f = newPatientForm.value;
   return f.nombre && f.telefono && f.fecha_nacimiento && f.sexo;
 });
 
-// Watch para actualizar la fecha cuando cambian selectedDate o selectedTime
 watch(
   () => [props.selectedDate, props.selectedTime, props.visible],
   ([date, time, visible]) => {
     if (visible && date) {
-      // Asegurarse de que la fecha se interpreta correctamente como local
       let d;
       if (date instanceof Date) {
-        // Si ya es un Date, crear una nueva fecha con los componentes locales
         d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       } else {
-        // Si es un string, parsearlo como local
         const [year, month, day] = date.split("-").map(Number);
         d = new Date(year, month - 1, day);
       }
-
       if (time) {
         const [h, m] = time.split(":");
         d.setHours(parseInt(h), parseInt(m), 0, 0);
       } else {
-        d.setHours(8, 0, 0, 0); // Hora por defecto
+        d.setHours(8, 0, 0, 0);
       }
       form.value.fecha = d;
     }
@@ -166,17 +159,18 @@ watch(
 
 const save = async () => {
   if (!canSave.value) return;
-
   loading.value = true;
   try {
-    // Formatear usando util central (offset fijo clínica)
-  // Construir fecha clínica a partir de componentes (evita desplazamientos TZ del navegador)
-  const datePart = `${form.value.fecha.getFullYear()}-${String(form.value.fecha.getMonth()+1).padStart(2,'0')}-${String(form.value.fecha.getDate()).padStart(2,'0')}`;
-  const timePart = `${String(form.value.fecha.getHours()).padStart(2,'0')}:${String(form.value.fecha.getMinutes()).padStart(2,'0')}`;
-  const apptDateStr = buildClinicDateTime(datePart, timePart);
+    const datePart = `${form.value.fecha.getFullYear()}-${String(
+      form.value.fecha.getMonth() + 1,
+    ).padStart(2, "0")}-${String(form.value.fecha.getDate()).padStart(2, "0")}`;
+    const timePart = `${String(form.value.fecha.getHours()).padStart(
+      2,
+      "0",
+    )}:${String(form.value.fecha.getMinutes()).padStart(2, "0")}`;
+    const apptDateStr = buildClinicDateTime(datePart, timePart);
 
     if (activeTab.value === "existing") {
-      // Crear cita para paciente existente usando el backend
       await AppointmentService.create({
         paciente_id: selectedPatient.value.id,
         fecha: apptDateStr,
@@ -189,19 +183,15 @@ const save = async () => {
         life: 3000,
       });
     } else {
-      // Crear paciente y cita en una transacción
-      // Construir fecha de nacimiento en formato local YYYY-MM-DD
-      const birthDate = newPatientForm.value.fecha_nacimiento;
-      const birthYear = birthDate.getFullYear();
-      const birthMonth = String(birthDate.getMonth() + 1).padStart(2, "0");
-      const birthDay = String(birthDate.getDate()).padStart(2, "0");
-      const birthDateStr = `${birthYear}-${birthMonth}-${birthDay}`;
-
+      const birth = newPatientForm.value.fecha_nacimiento;
+      const birthStr = `${birth.getFullYear()}-${String(
+        birth.getMonth() + 1,
+      ).padStart(2, "0")}-${String(birth.getDate()).padStart(2, "0")}`;
       await AppointmentService.createWithNewPatient({
         patient_data: {
           nombre: newPatientForm.value.nombre,
           telefono: newPatientForm.value.telefono,
-          fecha_nacimiento: birthDateStr,
+          fecha_nacimiento: birthStr,
           sexo: newPatientForm.value.sexo,
         },
         appointment_data: {
@@ -220,11 +210,10 @@ const save = async () => {
     resetForm();
     show.value = false;
   } catch (err) {
-    const message = getErrorMessage(err);
     toast.add({
       severity: "error",
       summary: "Error",
-      detail: message,
+      detail: getErrorMessage(err),
       life: 5000,
     });
   } finally {
@@ -233,7 +222,6 @@ const save = async () => {
 };
 
 const resetForm = () => {
-  // No resetear form.value.fecha aquí, el watch lo manejará cuando se abra el modal
   selectedPatient.value = null;
   durationMinutes.value = 30;
   newPatientForm.value = {
