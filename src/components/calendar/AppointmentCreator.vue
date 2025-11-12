@@ -297,12 +297,17 @@ watch(
         const [year, month, day] = date.split("-").map(Number);
         d = new Date(year, month - 1, day);
       }
+      
       if (time) {
+        // Si se proporciona una hora específica, usarla
         const [h, m] = time.split(":");
         d.setHours(parseInt(h), parseInt(m), 0, 0);
       } else {
+        // Si no hay hora específica, usar 8:00 como hora temporal
+        // refreshFreeSlots() la ajustará al primer slot disponible
         d.setHours(8, 0, 0, 0);
       }
+      
       form.value.fecha = d;
     }
   },
@@ -384,6 +389,16 @@ async function refreshFreeSlots() {
 
     const ranges = Array.isArray(schedule?.ranges) ? schedule.ranges : [];
     freeSlots.value = computeFreeSlots(ranges, appts, 15);
+    
+    // Si no hay hora especificada y hay slots libres, usar el primero
+    if (!props.selectedTime && freeSlots.value.length > 0) {
+      const firstSlot = freeSlots.value[0];
+      const startTime = firstSlot.split(" - ")[0];
+      const [h, m] = startTime.split(":");
+      const d = new Date(form.value.fecha);
+      d.setHours(parseInt(h), parseInt(m), 0, 0);
+      form.value.fecha = d;
+    }
   } catch (err) {
     console.error("Slots load error:", err);
     freeSlots.value = [];

@@ -105,12 +105,13 @@
           </div>
           <AppointmentTimeline
             v-else
-            :appointments="dayAppointments"
-            :schedules="scheduleRanges"
+            :appointments="formattedAppointments"
+            :business-hours="businessHours"
             :selected-date="selectedDateObject"
             :min-gap-minutes="5"
             @create-appointment="openCreateAppointment"
             @edit-appointment="openEditAppointment"
+            @cancel-appointment="openCancelAppointment"
           />
         </template>
       </Card>
@@ -191,54 +192,19 @@
     />
 
     <!-- Modal para editar cita existente -->
-    <Dialog
+    <EditAppointmentDialog
       v-model:visible="showEditAppointment"
-      header="Editar Cita"
-      modal
-      :closable="true"
-      :style="{ width: '500px' }"
-    >
-      <div v-if="editingAppointment" class="flex flex-column gap-3">
-        <div class="field">
-          <label class="font-semibold mb-2 block">Fecha y Hora</label>
-          <DatePicker
-            v-model="editDate"
-            showTime
-            hourFormat="24"
-            dateFormat="dd/mm/yy"
-            class="w-full"
-          />
-        </div>
+      :appointment="editingAppointment"
+      @updated="handleAppointmentUpdated"
+      @cancelled="handleAppointmentCancelled"
+    />
 
-        <div class="field">
-          <label class="font-semibold mb-2 block">Duración (minutos)</label>
-          <InputNumber
-            v-model="editDuration"
-            :min="5"
-            :max="180"
-            :step="5"
-            showButtons
-            class="w-full"
-          />
-        </div>
-
-        <div class="flex justify-content-end gap-2 mt-3">
-          <Button label="Cancelar" severity="secondary" @click="closeEditAppointment" />
-          <Button
-            label="Eliminar"
-            severity="danger"
-            outlined
-            @click="deleteAppointment"
-            :loading="savingEdit"
-          />
-          <Button
-            label="Guardar"
-            @click="saveEditAppointment"
-            :loading="savingEdit"
-          />
-        </div>
-      </div>
-    </Dialog>
+    <!-- Modal para cancelar cita desde el timeline -->
+    <CancelAppointmentDialog
+      v-model:visible="showCancelAppointment"
+      :appointment="appointmentToCancel"
+      @cancelled="handleAppointmentCancelled"
+    />
   </Dialog>
 </template>
 
@@ -256,6 +222,8 @@ import ProgressSpinner from 'primevue/progressspinner'
 import { useToast } from 'primevue/usetoast'
 import AppointmentTimeline from '@/components/dashboard/AppointmentTimeline.vue'
 import AppointmentCreator from '@/components/calendar/AppointmentCreator.vue'
+import EditAppointmentDialog from '@/components/calendar/EditAppointmentDialog.vue'
+import CancelAppointmentDialog from '@/components/calendar/CancelAppointmentDialog.vue'
 import { AppointmentService } from '@/services/appointmentService.js'
 import { ScheduleService } from '@/services/scheduleService.js'
 import { clinicDateString, buildClinicDateTime } from '@/utils/time.js'
@@ -282,16 +250,14 @@ const showEditSchedule = ref(false)
 const showDatePicker = ref(false)
 const showAppointmentCreator = ref(false)
 const showEditAppointment = ref(false)
+const showCancelAppointment = ref(false)
 
 // Edición de horarios
 const editingScheduleRanges = ref([])
 
 // Edición de citas
 const editingAppointment = ref(null)
-const editDate = ref(new Date())
-const editDuration = ref(30)
-const editTime = ref('09:00')
-const savingEdit = ref(false)
+const appointmentToCancel = ref(null)
 
 // Selector de fecha
 const pickerDate = ref(new Date())
@@ -316,6 +282,40 @@ const formattedDate = computed(() => {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
+  })
+})
+
+// Convertir scheduleRanges a businessHours format
+const businessHours = computed(() => {
+  return scheduleRanges.value.map(range => ({
+    start: range.inicio,
+    end: range.fin
+  }))
+})
+
+// Formatear appointments al formato esperado por AppointmentTimeline
+const formattedAppointments = computed(() => {
+  return dayAppointments.value.map(appt => {
+    const apptDate = new Date(appt.fecha)
+    const startTime = apptDate.toTimeString().slice(0, 5) // "HH:MM"
+    
+    // Calcular end time
+    const endDate = new Date(apptDate.getTime() + (appt.duracion * 1000))
+    const endTime = endDate.toTimeString().slice(0, 5) // "HH:MM"
+    
+    return {
+      id: appt.id,
+      start: startTime,
+      end: endTime,
+      patient: appt.nombre_paciente || appt.nombre || 'Sin nombre',
+      patientId: appt.paciente_id,
+      doctor: '', // Puedes agregar si tienes info del doctor
+      status: 'Pendiente', // Ajustar según tu lógica
+      rfc3339: appt.fecha,
+      // Mantener datos originales para edición
+      fecha: appt.fecha,
+      duracion: appt.duracion
+    }
   })
 })
 
@@ -455,95 +455,38 @@ async function saveScheduleChanges() {
 
 // Gestión de citas
 function openCreateAppointment(timeSlot) {
-  if (timeSlot && timeSlot.start) {
-    selectedTime.value = timeSlot.start
+  if (timeSlot) {
+    // timeSlot puede venir como { date, time } o { start }
+    selectedTime.value = timeSlot.time || timeSlot.start || null
+  } else {
+    selectedTime.value = null
   }
+  
   showAppointmentCreator.value = true
 }
 
 function openEditAppointment(appointment) {
   editingAppointment.value = appointment
-  
-  // Parsear la fecha de la cita
-  const apptDate = new Date(appointment.fecha)
-  editDate.value = apptDate
-  editDuration.value = Math.floor(appointment.duracion / 60)
-  
   showEditAppointment.value = true
 }
 
-function closeEditAppointment() {
+function handleAppointmentUpdated() {
   showEditAppointment.value = false
   editingAppointment.value = null
+  loadAppointments()
 }
 
-async function saveEditAppointment() {
-  if (!editingAppointment.value) return
-  
-  savingEdit.value = true
-  try {
-    const dateStr = clinicDateString(editDate.value)
-    const timeStr = editDate.value.toTimeString().slice(0, 5)
-    const apptDateStr = buildClinicDateTime(dateStr, timeStr)
-    const durationSeconds = editDuration.value * 60
-
-    await AppointmentService.update(editingAppointment.value.id, {
-      fecha: apptDateStr,
-      duracion: durationSeconds
-    })
-
-    toast.add({
-      severity: 'success',
-      summary: 'Cita actualizada',
-      detail: 'La cita se ha actualizado correctamente',
-      life: 3000
-    })
-
-    closeEditAppointment()
-    await loadAppointments()
-  } catch (e) {
-    console.error('Error updating appointment:', e)
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: getErrorMessage(e),
-      life: 4000
-    })
-  } finally {
-    savingEdit.value = false
-  }
+async function openCancelAppointment(appointment) {
+  appointmentToCancel.value = appointment
+  showCancelAppointment.value = true
 }
 
-async function deleteAppointment() {
-  if (!editingAppointment.value) return
-  
-  const confirmDelete = window.confirm('¿Está seguro de eliminar esta cita?')
-  if (!confirmDelete) return
-
-  savingEdit.value = true
-  try {
-    await AppointmentService.delete(editingAppointment.value.id)
-
-    toast.add({
-      severity: 'success',
-      summary: 'Cita eliminada',
-      detail: 'La cita se ha eliminado correctamente',
-      life: 3000
-    })
-
-    closeEditAppointment()
-    await loadAppointments()
-  } catch (e) {
-    console.error('Error deleting appointment:', e)
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: getErrorMessage(e),
-      life: 4000
-    })
-  } finally {
-    savingEdit.value = false
-  }
+function handleAppointmentCancelled() {
+  showCancelAppointment.value = false
+  showEditAppointment.value = false
+  editingAppointment.value = null
+  appointmentToCancel.value = null
+  loadAppointments()
 }
 
 async function handleAppointmentCreated() {

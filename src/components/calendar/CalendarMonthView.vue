@@ -155,17 +155,11 @@ async function loadMonthAppointments() {
   const startStr = clinicDateString(start)
   const endStr = clinicDateString(end)
 
-  console.log('📅 [CalendarMonthView] Loading appointments:', { startStr, endStr })
-
   try {
     const appointments = await AppointmentService.getByDateRange(startStr, endStr)
     monthAppointments.value = appointments || []
-    console.log('✅ [CalendarMonthView] Loaded appointments:', monthAppointments.value.length)
-    if (appointments && appointments.length > 0) {
-      console.log('📋 [CalendarMonthView] First appointment:', appointments[0])
-    }
   } catch (error) {
-    console.error('❌ [CalendarMonthView] Error loading appointments:', error)
+    console.error('Error loading appointments:', error)
     monthAppointments.value = []
   }
 }
@@ -196,12 +190,6 @@ const monthCells = computed(() => {
   const start = startOfGrid(base)
   const cells = []
 
-  // Debug: Log all appointments
-  console.log('🔍 [CalendarMonthView] Total appointments:', monthAppointments.value.length)
-  if (monthAppointments.value.length > 0) {
-    console.log('🔍 [CalendarMonthView] Sample appointment:', monthAppointments.value[0])
-  }
-
   for (let i = 0; i < 42; i++) {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
@@ -226,19 +214,11 @@ const monthCells = computed(() => {
     // Filtrar citas para este día
     const dayAppointments = monthAppointments.value.filter(appt => {
       const apptDate = new Date(appt.fecha)
-      const apptDateString = clinicDateString(apptDate)
+      // Normalizar ambas fechas a medianoche para comparar solo día
+      const apptDateOnly = new Date(apptDate.getFullYear(), apptDate.getMonth(), apptDate.getDate())
+      const cellDateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate())
       
-      // Debug: Log first cell only to avoid spam
-      if (i === 0 && appt) {
-        console.log('🔍 [CalendarMonthView] Comparing:', {
-          apptFecha: appt.fecha,
-          apptDateString,
-          cellIso: iso,
-          matches: apptDateString === iso
-        })
-      }
-      
-      return apptDateString === iso
+      return apptDateOnly.getTime() === cellDateOnly.getTime()
     })
 
     // Formatear citas para display
@@ -248,7 +228,7 @@ const monthCells = computed(() => {
       return {
         id: appt.id,
         time,
-        patientName: appt.paciente_nombre || 'Sin nombre',
+        patientName: appt.nombre_paciente || appt.nombre || 'Sin nombre',
         duration: appt.duracion
       }
     })
