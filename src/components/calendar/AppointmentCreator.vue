@@ -68,18 +68,18 @@
 
               <!-- Card container -->
               <Panel
-                class="w-full shadow-1 border-round-lg overflow-hidden"
+                class="w-full shadow-1 border-round-lg overflow-hidden flex-1"
                 :pt="{
                   header: {
                     class:
                       'bg-surface-100 text-color font-medium text-sm px-3 py-2',
                   },
-                  content: { class: 'p-0 bg-surface-section' },
+                  content: { class: 'p-0 bg-surface-section h-full' },
                 }"
               >
                 <ScrollPanel
                   class="w-full"
-                  style="max-height: 16rem"
+                  style="height: 100%"
                   :pt="{
                     bar: { class: 'bg-primary-200' },
                     handle: { class: 'bg-primary-400 border-round-sm' },
@@ -119,7 +119,7 @@
         </TabPanel>
 
         <TabPanel value="new" class="py-4">
-          <div class="flex flex-column md:flex-row align-items-start">
+          <div class="flex flex-column md:flex-row">
             <!-- Left: new patient form -->
             <div class="flex-1 min-w-0">
               <NewPatientForm
@@ -134,10 +134,9 @@
               class="hidden md:block border-left-1 surface-border mx-3"
               style="align-self: stretch"
             ></div>
-
             <!-- Right: Free slots bar -->
             <aside
-              class="md:w-18rem w-full md:pl-4 mt-4 md:mt-0 flex flex-column gap-3 p-0 flex-shrink-0"
+              class="md:w-18rem w-full md:pl-4 mt-4 md:mt-0 flex flex-column gap-3 p-0"
             >
               <div class="flex align-items-center gap-2">
                 <i class="pi pi-clock text-primary text-lg"></i>
@@ -148,18 +147,18 @@
 
               <!-- Card container -->
               <Panel
-                class="w-full shadow-1 border-round-lg overflow-hidden"
+                class="w-full shadow-1 border-round-lg overflow-hidden flex-1"
                 :pt="{
                   header: {
                     class:
                       'bg-surface-100 text-color font-medium text-sm px-3 py-2',
                   },
-                  content: { class: 'p-0 bg-surface-section' },
+                  content: { class: 'p-0 bg-surface-section h-full' },
                 }"
               >
                 <ScrollPanel
                   class="w-full"
-                  style="max-height: 16rem"
+                  style="height: 100%"
                   :pt="{
                     bar: { class: 'bg-primary-200' },
                     handle: { class: 'bg-primary-400 border-round-sm' },
@@ -297,7 +296,7 @@ watch(
         const [year, month, day] = date.split("-").map(Number);
         d = new Date(year, month - 1, day);
       }
-      
+
       if (time) {
         // Si se proporciona una hora específica, usarla
         const [h, m] = time.split(":");
@@ -307,7 +306,7 @@ watch(
         // refreshFreeSlots() la ajustará al primer slot disponible
         d.setHours(8, 0, 0, 0);
       }
-      
+
       form.value.fecha = d;
     }
   },
@@ -389,7 +388,7 @@ async function refreshFreeSlots() {
 
     const ranges = Array.isArray(schedule?.ranges) ? schedule.ranges : [];
     freeSlots.value = computeFreeSlots(ranges, appts, 15);
-    
+
     // Si no hay hora especificada y hay slots libres, usar el primero
     if (!props.selectedTime && freeSlots.value.length > 0) {
       const firstSlot = freeSlots.value[0];

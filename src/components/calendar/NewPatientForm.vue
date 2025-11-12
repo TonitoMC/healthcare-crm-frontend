@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2">
+  <div class="p-0">
     <!-- Grid 2x3: Fila 1 (Nombre | Teléfono) + Fila 2 (Fecha Nac. | Sexo) + Fila 3 (Fecha/Hora | Duración) -->
     <div class="grid" style="row-gap: 1rem">
       <!-- Fila 1, Col 1: Nombre -->

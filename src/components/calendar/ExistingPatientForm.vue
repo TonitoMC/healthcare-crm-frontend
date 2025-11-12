@@ -3,7 +3,7 @@
     <div class="grid" style="row-gap: 1rem">
       <!-- Label de sección -->
       <div class="col-12 p-1.5">
-        <div class="px-2 mb-1">
+        <div class="px-2">
           <label class="block font-medium text-color">
             <i class="pi pi-search mr-2 text-primary"></i>
             Buscar Paciente
