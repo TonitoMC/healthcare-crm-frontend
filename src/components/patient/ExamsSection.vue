@@ -23,60 +23,65 @@
       </div>
 
       <!-- Exams List -->
-      <DataTable
-        :value="exams"
-        :rows="10"
-        paginator
-        responsiveLayout="scroll"
-        class="cursor-pointer"
-      >
-        <Column field="fecha" header="Fecha">
-          <template #body="{ data }">
-            {{
-              data.fecha
-                ? new Date(data.fecha).toLocaleDateString()
-                : "Sin fecha"
-            }}
-          </template>
-        </Column>
-        <Column field="tipo" header="Tipo" />
+      <div class="flex-1 min-h-0 overflow-hidden">
+        <DataTable
+          :value="exams"
+          :rows="10"
+          paginator
+          scrollable
+          scrollHeight="flex"
+          responsiveLayout="scroll"
+          class="cursor-pointer flex-1"
+        >
+          <Column field="fecha" header="Fecha">
+            <template #body="{ data }">
+              {{
+                data.fecha
+                  ? new Date(data.fecha).toLocaleDateString()
+                  : "Sin fecha"
+              }}
+            </template>
+          </Column>
 
-        <Column header="Acciones">
-          <template #body="{ data }">
-            <div class="flex align-items-center gap-2">
-              <!-- Upload if pending -->
-              <Button
-                v-if="data.estado === 'PENDIENTE'"
-                label="Subir PDF"
-                icon="pi pi-upload"
-                text
-                size="small"
-                class="text-primary"
-                @click="openUploadDialog(data)"
-              />
+          <Column field="tipo" header="Tipo" />
 
-              <!-- Open & download if file exists -->
-              <div v-else class="flex gap-2">
+          <Column header="Acciones">
+            <template #body="{ data }">
+              <div class="flex align-items-center gap-2">
+                <!-- Upload if pending -->
                 <Button
-                  label="Abrir"
-                  icon="pi pi-external-link"
+                  v-if="data.estado === 'PENDIENTE'"
+                  label="Subir PDF"
+                  icon="pi pi-upload"
                   text
                   size="small"
                   class="text-primary"
-                  @click="viewPdf(data)"
+                  @click="openUploadDialog(data)"
                 />
-                <Button
-                  icon="pi pi-download"
-                  text
-                  size="small"
-                  class="text-primary"
-                  @click="downloadPdf(data)"
-                />
+
+                <!-- Open & download if file exists -->
+                <div v-else class="flex gap-2">
+                  <Button
+                    label="Abrir"
+                    icon="pi pi-external-link"
+                    text
+                    size="small"
+                    class="text-primary"
+                    @click="viewPdf(data)"
+                  />
+                  <Button
+                    icon="pi pi-download"
+                    text
+                    size="small"
+                    class="text-primary"
+                    @click="downloadPdf(data)"
+                  />
+                </div>
               </div>
-            </div>
-          </template>
-        </Column>
-      </DataTable>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
     </template>
   </Card>
 
@@ -110,11 +115,6 @@ import InputText from "primevue/inputtext";
 import FileUpload from "primevue/fileupload";
 import { ExamService } from "@/services/examService";
 
-/**
- * Props
- * - exams: Provided by PatientDetailView (already loaded from usePatientData)
- * - patientId: Used when creating or uploading exams
- */
 const props = defineProps({
   patientId: { type: Number, required: true },
   exams: { type: Array, required: true },
@@ -176,32 +176,24 @@ async function viewPdf(exam) {
     if (!savedAuth) return console.error("No authentication token found");
     const { token } = JSON.parse(savedAuth);
 
-    // Request the PDF file from the backend
     const response = await fetch(ExamService.getDownloadUrl(exam.id), {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!response.ok) throw new Error("Failed to download PDF");
-
-    // Convert to blob and generate a local object URL
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    // Open a new tab and embed the PDF
     const tab = window.open("", "_blank");
     tab.document.title = exam.tipo || "Examen";
     const safeName = (exam.tipo || `examen-${exam.id}`)
       .replace(/\s+/g, "_")
-      .replace(/[^\w_-]/g, ""); // make sure it’s URL-safe
+      .replace(/[^\w_-]/g, "");
 
     tab.document.body.innerHTML = `
       <embed src="${url}" type="application/pdf" width="100%" height="100%">
     `;
-
-    // Replace the URL in the new tab with a friendly virtual path
     tab.history.replaceState({}, safeName, `${safeName}.pdf`);
-
-    // Clean up the blob after a bit
     setTimeout(() => window.URL.revokeObjectURL(url), 15000);
   } catch (error) {
     console.error("Error viewing PDF:", error);
@@ -219,11 +211,9 @@ async function downloadPdf(exam) {
     });
 
     if (!response.ok) throw new Error("Failed to download PDF");
-
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    // Generate a clean filename (e.g. Paquimetria.pdf)
     const safeName = (exam.tipo || `examen-${exam.id}`)
       .replace(/\s+/g, "_")
       .replace(/[^\w_-]/g, "");
@@ -240,13 +230,22 @@ async function downloadPdf(exam) {
 </script>
 
 <style scoped>
+.cursor-pointer :deep(tbody tr) {
+  cursor: pointer;
+}
+
+:deep(.p-datatable-wrapper) {
+  flex: 1;
+  min-height: 0;
+}
+
+:deep(.p-paginator-bottom) {
+  margin-top: auto;
+}
+
 :deep(h4) {
   padding: 0 !important;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
-}
-
-.cursor-pointer :deep(tbody tr) {
-  cursor: pointer;
 }
 </style>

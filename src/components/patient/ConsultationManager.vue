@@ -26,48 +26,49 @@
       </div>
 
       <!-- Consultation List -->
-      <DataTable
-        :value="consultations"
-        :rows="5"
-        paginator
-        @row-click="openDetail"
-        selectionMode="single"
-        class="cursor-pointer"
-      >
-        <Column field="fecha" header="Fecha">
-          <template #body="{ data }">
-            {{ new Date(data.fecha).toLocaleDateString() }}
-          </template>
-        </Column>
-        <Column field="motivo" header="Motivo" />
-
-        <!-- 🩹 Placeholder: Tratamientos -->
-        <Column field="tratamientos" header="Tratamientos">
-          <template #body="{ data }">
-            <span class="text-color-secondary italic">
-              {{ data.tratamientos || "—" }}
-            </span>
-          </template>
-        </Column>
-
-        <!-- 🧠 Placeholder: Diagnósticos -->
-        <Column field="diagnosticos" header="Diagnósticos">
-          <template #body="{ data }">
-            <span class="text-color-secondary italic">
-              {{ data.diagnosticos || "—" }}
-            </span>
-          </template>
-        </Column>
-
-        <Column field="completada" header="Estado">
-          <template #body="{ data }">
-            <Tag
-              :severity="data.completada ? 'success' : 'warning'"
-              :value="data.completada ? 'Completada' : 'Pendiente'"
-            />
-          </template>
-        </Column>
-      </DataTable>
+      <div class="flex-1 min-h-0 overflow-hidden">
+        <DataTable
+          :value="consultations"
+          :rows="5"
+          paginator
+          scrollable
+          scrollHeight="flex"
+          @row-click="openDetail"
+          selectionMode="single"
+          class="cursor-pointer flex-1"
+        >
+          <Column field="fecha" header="Fecha">
+            <template #body="{ data }">{{ formatDate(data.fecha) }}</template>
+          </Column>
+          <Column field="motivo" header="Motivo" />
+          <Column field="tratamientos" header="Tratamientos">
+            <template #body="{ data }">
+              <span class="text-color-secondary italic">
+                {{
+                  data.diagnostics
+                    ?.flatMap((d) => d.treatments?.map((t) => t.Nombre))
+                    .join(", ") || "—"
+                }}
+              </span>
+            </template>
+          </Column>
+          <Column field="diagnosticos" header="Diagnósticos">
+            <template #body="{ data }">
+              <span class="text-color-secondary italic">
+                {{ data.diagnostics?.map((d) => d.nombre).join(", ") || "—" }}
+              </span>
+            </template>
+          </Column>
+          <Column field="completada" header="Estado">
+            <template #body="{ data }">
+              <Tag
+                :severity="data.completada ? 'success' : 'warning'"
+                :value="data.completada ? 'Completada' : 'Pendiente'"
+              />
+            </template>
+          </Column>
+        </DataTable>
+      </div>
     </template>
   </Card>
 
@@ -85,7 +86,7 @@
       </div>
       <div>
         <label class="font-semibold">Fecha:</label>
-        <p>{{ new Date(currentConsultation.fecha).toLocaleString() }}</p>
+        <p>{{ formatDate(currentConsultation.fecha) }}</p>
       </div>
       <div>
         <label class="font-semibold">Estado:</label>
@@ -165,6 +166,13 @@ async function createNewConsultation() {
 function openDetail(event) {
   currentConsultation.value = event.data;
   showDetailDialog.value = true;
+}
+
+function formatDate(ddmmyyyy) {
+  if (!ddmmyyyy) return "—";
+  const [day, month, year] = ddmmyyyy.split("-");
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString();
 }
 
 async function markAsComplete() {

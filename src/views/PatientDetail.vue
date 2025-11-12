@@ -15,7 +15,7 @@
     <!-- 🧩 Header -->
     <PatientHeader
       :patient="patient"
-      :medical-record="medical - record"
+      :medical-record="medicalRecord"
       @edit="handleEdit"
       @viewHistory="handleViewHistory"
     />

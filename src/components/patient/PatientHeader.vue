@@ -1,11 +1,11 @@
 <template>
   <Card class="patient-header">
     <template #content>
-      <div
-        class="flex flex-column md:flex-row align-items-stretch gap-4 md:gap-6"
-      >
-        <!-- 🧍 Left: Patient Info (exact 50%) -->
-        <div class="flex flex-column gap-2 flex-1 min-w-0">
+      <div class="flex flex-column md:flex-row align-items-stretch w-full">
+        <!-- 🧍 Left: Patient Info (≈35%) -->
+        <div
+          class="flex flex-column gap-2 flex-shrink-0 basis-[35%] min-w-[18rem] pr-4"
+        >
           <div class="flex justify-content-between align-items-start">
             <div class="flex align-items-center gap-2">
               <i class="pi pi-user text-3xl text-primary"></i>
@@ -23,27 +23,48 @@
             />
           </div>
 
+          <!-- 🧾 Patient Basic Info -->
           <div
             class="flex flex-wrap gap-3 text-color-secondary text-sm md:text-base"
           >
-            <span><i class="pi pi-calendar mr-2"></i>{{ edad }} años</span>
-            <span
-              ><i class="pi pi-venus-mars mr-2"></i>{{ patient?.sexo }}</span
-            >
+            <!-- 📅 Date of Birth -->
+            <span v-if="patient?.fecha_nacimiento">
+              <i class="pi pi-calendar mr-2"></i>
+              {{ formatDate(patient.fecha_nacimiento) }}
+            </span>
+
+            <!-- ☎️ Phone -->
             <span v-if="patient?.telefono">
-              <i class="pi pi-phone mr-2"></i>{{ patient.telefono }}
+              <i class="pi pi-phone mr-2"></i>
+              {{ patient.telefono }}
+            </span>
+
+            <!-- ⚧️ Gender -->
+            <span v-if="patient?.sexo">
+              <i
+                :class="[
+                  'pi mr-2',
+                  patient.sexo === 'Femenino'
+                    ? 'pi-venus'
+                    : patient.sexo === 'Masculino'
+                      ? 'pi-mars'
+                      : 'pi-genderless',
+                ]"
+              ></i>
+              {{ patient.sexo }}
             </span>
           </div>
         </div>
 
-        <!-- 🧱 Divider (no width, just a border) -->
+        <!-- 🧱 Divider -->
         <div
           class="hidden md:block align-self-stretch w-0 border-right-1 surface-border"
         ></div>
 
-        <!-- 🩺 Right: Antecedentes (exact 50%) -->
-        <div class="flex flex-column flex-1 min-w-0">
+        <!-- 🩺 Right: Medical Summary -->
+        <div class="flex flex-column justify-content-center flex-grow-1 pl-4">
           <MedicalSummaryInline
+            class="w-full"
             :record="medicalRecord"
             :loading="loadingMedical"
             @edit="$emit('editMedical')"
@@ -61,12 +82,21 @@ import MedicalSummaryInline from "./MedicalSummaryInline.vue";
 
 const props = defineProps({
   patient: { type: Object, default: null },
-  edad: { type: Number, default: 0 },
   medicalRecord: { type: Object, default: null },
   loadingMedical: { type: Boolean, default: false },
 });
 
 defineEmits(["edit", "editMedical"]);
+
+function formatDate(dateStr) {
+  if (!dateStr) return "—";
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("es-GT", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 </script>
 
 <style scoped>
