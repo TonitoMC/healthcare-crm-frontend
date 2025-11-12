@@ -5,6 +5,7 @@ import Calendar from "@views/Calendar.vue";
 import AdminRoles from "@views/AdminRoles.vue";
 import WhatsAppMessages from "@views/WhatsAppMessages.vue";
 import PatientDetail from "@views/PatientDetail.vue";
+import Formularios from "@views/Formularios.vue";
 const Profile = () => import("@/views/Profile.vue");
 import DefaultLayout from "@layouts/DefaultLayout.vue";
 
@@ -49,6 +50,15 @@ const routes = [
         component: Profile,
         meta: {
           requiresAuth: true,
+        },
+      },
+      {
+        path: "formularios",
+        name: "Formularios",
+        component: Formularios,
+        meta: {
+          requiresAuth: true,
+          roles: ["admin", "doctor"],
         },
       },
       {
