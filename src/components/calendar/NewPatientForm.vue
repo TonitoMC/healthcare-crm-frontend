@@ -200,3 +200,120 @@ const handleDurationBlur = () => {
   }
 };
 </script>
+
+<style scoped>
+/* ─────────────────────────────
+   1️⃣ General input alignment baseline
+   ───────────────────────────── */
+:deep(.p-inputtext),
+:deep(.p-inputnumber-input),
+:deep(.p-select-label),
+:deep(.p-datepicker-input) {
+  padding: 0.75rem 1rem !important; /* same inner padding for all */
+  font-size: 0.95rem !important;
+  line-height: 1.4 !important;
+  box-sizing: border-box;
+  height: 3rem; /* consistent field height */
+}
+
+/* ─────────────────────────────
+   2️⃣ InputNumber fixes (keep your version)
+   ───────────────────────────── */
+:deep(.p-inputnumber) {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+:deep(.p-inputnumber-button) {
+  flex: 0 0 auto;
+}
+
+:deep(.p-inputnumber-input) {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* ─────────────────────────────
+   3️⃣ Select height / alignment
+   ───────────────────────────── */
+:deep(.p-select) {
+  width: 100%;
+}
+
+:deep(.p-select-label) {
+  display: flex;
+  align-items: center;
+  height: 3rem !important;
+}
+
+/* ─────────────────────────────
+   4️⃣ DatePicker alignment
+   ───────────────────────────── */
+:deep(.p-datepicker) {
+  width: 100%;
+}
+
+:deep(.p-datepicker-input) {
+  height: 3rem !important;
+  display: flex;
+  align-items: center;
+}
+
+/* ─────────────────────────────
+   5️⃣ Placeholder sizing (like your other form)
+   ───────────────────────────── */
+:deep(input::placeholder),
+:deep(.p-inputnumber-input::placeholder),
+:deep(.p-datepicker-input::placeholder) {
+  font-size: 0.9rem;
+  color: var(--text-color-secondary);
+}
+
+/* ─────────────────────────────
+   6️⃣ Cosmetic consistency tweaks
+   ───────────────────────────── */
+label i {
+  width: 1.25rem; /* prevents icon width shifts */
+  text-align: center;
+}
+
+/* Keep your previous alignment fixes here... then add these */
+
+/* ─────────────────────────────
+   DatePicker full-width normalization
+   ───────────────────────────── */
+:deep(.p-datepicker),
+:deep(.p-datepicker input),
+:deep(.p-datepicker-input) {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+/* Fix height consistency for both simple and showTime variants */
+:deep(.p-datepicker input),
+:deep(.p-datepicker-input) {
+  height: 3rem !important; /* match InputText + Select + InputNumber */
+  padding: 0.75rem 1rem !important;
+  font-size: 0.95rem !important;
+  line-height: 1.4 !important;
+  display: flex;
+  align-items: center;
+}
+
+/* Ensure the internal flex wrapper doesn’t shrink (this causes the short input look) */
+:deep(.p-inputwrapper) {
+  width: 100% !important;
+  flex: 1 1 auto !important;
+  display: flex;
+}
+
+/* Optional – tiny polish for inner calendar icon spacing */
+:deep(.p-datepicker .p-inputtext) {
+  padding-right: 2.5rem !important;
+}
+</style>

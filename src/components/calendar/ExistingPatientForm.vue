@@ -2,7 +2,7 @@
   <div class="p-0">
     <div class="grid" style="row-gap: 1rem">
       <!-- Label de sección -->
-      <div class="col-12 p-0">
+      <div class="col-12 p-1.5">
         <div class="px-2 mb-1">
           <label class="block font-medium text-color">
             <i class="pi pi-search mr-2 text-primary"></i>
@@ -166,6 +166,7 @@
             <i class="pi pi-clock mr-2 text-primary"></i>
             Duración (minutos)
           </label>
+
           <InputNumber
             v-model="localDuration"
             :min="5"
@@ -179,9 +180,6 @@
             suffix=" min"
             placeholder="30"
             @blur="handleDurationBlur"
-            :pt="{
-              input: { class: 'w-full p-3' },
-            }"
           />
         </div>
       </div>
@@ -293,3 +291,28 @@ const searchPatient = async (event) => {
 
 const clearPatient = () => emit("update:patient", null);
 </script>
+
+<style scoped>
+:deep(.p-inputnumber) {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+:deep(.p-inputnumber-button) {
+  flex: 0 0 auto;
+}
+
+:deep(.p-inputnumber-input) {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+:deep(.p-autocomplete-input::placeholder) {
+  font-size: 0.9rem;
+  color: var(--text-color-secondary); /* optional */
+}
+</style>
