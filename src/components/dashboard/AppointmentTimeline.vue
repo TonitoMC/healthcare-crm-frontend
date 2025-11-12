@@ -58,6 +58,7 @@
                 outlined
                 @click.stop="onEdit(slotProps.item)"
               />
+
               <Button
                 v-if="slotProps.item.id"
                 label="Cancelar"
@@ -65,20 +66,7 @@
                 size="small"
                 outlined
                 severity="danger"
-                @click.stop="cancelAppointment(slotProps.item)"
-              />
-
-              <Button
-                v-if="
-                  slotProps.item.patientId &&
-                  isWithinOneHour(slotProps.item.start)
-                "
-                label="Ir a Paciente"
-                icon="pi pi-user"
-                size="small"
-                @click.stop="
-                  $router.push(`/app/patients/${slotProps.item.patientId}`)
-                "
+                @click.stop="onCancel(slotProps.item)"
               />
             </div>
           </div>
@@ -125,7 +113,11 @@ const props = defineProps({
   selectedDate: { type: Date, default: () => new Date() },
 });
 
-const emit = defineEmits(["create-appointment", "edit-appointment"]);
+const emit = defineEmits([
+  "create-appointment",
+  "edit-appointment",
+  "cancel-appointment",
+]);
 
 function onEdit(item) {
   emit("edit-appointment", item);
@@ -244,6 +236,10 @@ const timelineItems = computed(() => {
 
   return items;
 });
+
+function onCancel(item) {
+  emit("cancel-appointment", item);
+}
 </script>
 
 <style scoped>

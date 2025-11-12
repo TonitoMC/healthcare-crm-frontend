@@ -29,6 +29,7 @@
             :selected-date="selectedDate"
             @create-appointment="handleCreateAppointment"
             @edit-appointment="openEditModal"
+            @cancel-appointment="openCancelModal"
           />
         </div>
       </ScrollPanel>
@@ -50,6 +51,12 @@
     @updated="handleAppointmentUpdated"
     @cancelled="handleAppointmentCancelled"
   />
+  <!-- Modal: Cancelar Cita -->
+  <CancelAppointmentDialog
+    v-model:visible="showCancelDialog"
+    :appointment="cancellingAppt"
+    @cancelled="handleAppointmentCancelled"
+  />
 </template>
 
 <script setup>
@@ -62,6 +69,7 @@ import AppointmentCreator from "@/components/calendar/AppointmentCreator.vue";
 import EditAppointmentDialog from "@/components/calendar/EditAppointmentDialog.vue";
 import { AppointmentService } from "@/services/appointmentService.js";
 import { ScheduleService } from "@/services/scheduleService.js";
+import CancelAppointmentDialog from "@/components/calendar/CancelAppointmentDialog.vue";
 import { clinicDateString } from "@/utils/time.js";
 import { useToast } from "primevue/usetoast";
 
@@ -73,6 +81,8 @@ const rawAppointments = ref([]);
 const businessHours = ref([]);
 const showCreator = ref(false);
 const showEditor = ref(false);
+const showCancelDialog = ref(false);
+const cancellingAppt = ref(null);
 const appointmentDate = ref(null);
 const appointmentTime = ref(null);
 const editingAppt = ref(null);
@@ -204,6 +214,21 @@ const openEditModal = (item) => {
   showEditor.value = true;
 };
 
+const openCancelModal = (item) => {
+  if (!item || !item.id) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "No se pudo cargar la cita a cancelar",
+      life: 3000,
+    });
+    return;
+  }
+
+  cancellingAppt.value = item;
+  showCancelDialog.value = true;
+};
+
 const handleAppointmentUpdated = async () => {
   showEditor.value = false;
   await fetchAppointments();
@@ -217,11 +242,6 @@ const handleAppointmentUpdated = async () => {
 const handleAppointmentCancelled = async () => {
   showEditor.value = false;
   await fetchAppointments();
-  toast.add({
-    severity: "warn",
-    summary: "Cita cancelada",
-    life: 3000,
-  });
 };
 
 // ─────────────────────────────────────────────
