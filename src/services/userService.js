@@ -14,6 +14,11 @@ export const UserService = {
     return data;
   },
 
+  async listUsersEnriched() {
+    const { data } = await api.get("/user/enriched");
+    return data;
+  },
+
   /**
    * Fetch a single user by ID.
    * GET /user/:id
