@@ -33,6 +33,7 @@ const routes = [
         component: Calendar,
         meta: {
           requiresAuth: true,
+          permissions: ["ver-citas"],
         },
       },
       {
@@ -41,7 +42,7 @@ const routes = [
         component: WhatsAppMessages,
         meta: {
           requiresAuth: true,
-          roles: ["admin", "doctor", "assistant"],
+          permissions: ["ver-mensajes"],
         },
       },
       {
@@ -58,7 +59,7 @@ const routes = [
         component: Formularios,
         meta: {
           requiresAuth: true,
-          roles: ["admin", "doctor"],
+          permissions: ["ver-formularios"],
         },
       },
       {
@@ -67,7 +68,7 @@ const routes = [
         component: AdminRoles,
         meta: {
           requiresAuth: true,
-          roles: ["admin"],
+          permissions: ["manejar-usuarios"],
         },
       },
       {
@@ -76,7 +77,7 @@ const routes = [
         component: PatientDetail,
         meta: {
           requiresAuth: true,
-          roles: ["admin", "doctor"],
+          permissions: ["ver-pacientes"],
         },
       },
     ],

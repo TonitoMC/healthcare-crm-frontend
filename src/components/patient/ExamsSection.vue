@@ -42,7 +42,11 @@
             <template #body="{ data }">
               {{
                 data.fecha
-                  ? new Date(data.fecha).toLocaleDateString()
+                  ? new Date(data.fecha).toLocaleDateString("es-GT", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })
                   : "Sin fecha"
               }}
             </template>
@@ -53,6 +57,7 @@
           <Column header="Acciones">
             <template #body="{ data }">
               <div class="flex align-items-center gap-2">
+                <!-- 📂 Exam file actions -->
                 <template v-if="data.s3_key">
                   <Button
                     label="Abrir"
@@ -81,6 +86,17 @@
                     @click="openUploadDialog(data)"
                   />
                 </template>
+
+                <!-- ❌ Cancel/Delete action -->
+                <Button
+                  label="Eliminar"
+                  icon="pi pi-times"
+                  text
+                  size="small"
+                  class="text-red-500"
+                  severity="danger"
+                  @click="openCancelDialog(data)"
+                />
               </div>
             </template>
           </Column>
@@ -110,41 +126,167 @@
   <!-- ✅ Confirm New Exam Modal -->
   <Dialog
     v-model:visible="showNewExamDialog"
-    header="Confirmar Nuevo Examen"
     modal
-    style="width: 450px"
+    :style="{ width: '32rem', maxWidth: '90vw' }"
+    :pt="{
+      root: { class: 'border-round-2xl overflow-hidden' },
+      content: { class: 'px-5 py-0' },
+    }"
   >
-    <div class="flex flex-column gap-3 p-1">
-      <div class="flex flex-column">
-        <label class="text-sm text-color-secondary mb-1">Paciente</label>
-        <InputText :value="props.patientName" readonly class="w-full" />
+    <template #header>
+      <div
+        class="flex align-items-center gap-2 w-full px-3 py-2 surface-card border-bottom-1 surface-border"
+      >
+        <div class="flex flex-column">
+          <h2 class="m-0 text-lg font-semibold text-color">
+            Confirmar Nuevo Examen
+          </h2>
+          <span class="text-sm text-color-secondary mt-1">
+            Revise los datos antes de confirmar la creación del examen
+          </span>
+        </div>
+      </div>
+    </template>
+
+    <div class="pt-0 pb-4 flex flex-column gap-4">
+      <div
+        class="surface-card border-round-lg shadow-1 border-1 surface-border p-4 flex flex-column gap-3"
+      >
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-user text-primary"></i>
+          <span class="font-medium text-color">
+            {{ props.patientName || "Paciente desconocido" }}
+          </span>
+        </div>
+
+        <div class="flex align-items-center gap-2 text-color-secondary text-sm">
+          <i class="pi pi-calendar"></i>
+          <span>{{ today }}</span>
+        </div>
+
+        <div class="flex align-items-center gap-2 text-color-secondary text-sm">
+          <i class="pi pi-clipboard"></i>
+          <InputText
+            v-model="newExamTipo"
+            placeholder="Tipo de examen"
+            class="flex-1"
+          />
+        </div>
       </div>
 
-      <div class="flex flex-column">
-        <label class="text-sm text-color-secondary mb-1">Fecha</label>
-        <InputText :value="today" readonly class="w-full" />
-      </div>
+      <Message severity="warn" icon="pi pi-exclamation-triangle" class="w-full">
+        Confirme la creación de este nuevo examen.
+      </Message>
+    </div>
 
-      <div class="flex flex-column">
-        <label class="text-sm text-color-secondary mb-1">Tipo de examen</label>
-        <InputText v-model="newExamTipo" class="w-full" />
-      </div>
-
-      <div class="flex justify-content-end gap-2 mt-3">
+    <template #footer>
+      <div
+        class="flex justify-content-end align-items-center w-full gap-2 px-3 py-2 border-top-1 surface-border"
+      >
         <Button
-          label="Cancelar"
+          label="Cerrar"
+          icon="pi pi-times"
           text
+          severity="secondary"
+          class="px-3 py-2 text-sm"
           @click="showNewExamDialog = false"
           :disabled="creatingExam"
         />
         <Button
-          label="Confirmar"
+          label="Confirmar Examen"
           icon="pi pi-check"
+          severity="primary"
+          outlined
           :loading="creatingExam"
+          class="px-4 py-2 text-sm font-medium hover:bg-primary-50"
           @click="createExam"
         />
       </div>
+    </template>
+  </Dialog>
+
+  <!-- 🗑️ Cancel/Delete Exam Dialog -->
+  <Dialog
+    v-model:visible="showCancelDialog"
+    modal
+    :style="{ width: '32rem', maxWidth: '90vw' }"
+    :pt="{
+      root: { class: 'border-round-2xl overflow-hidden' },
+      content: { class: 'px-5 py-0' },
+    }"
+  >
+    <template #header>
+      <div
+        class="flex align-items-center gap-2 w-full px-3 py-2 surface-card border-bottom-1 surface-border"
+      >
+        <div class="flex flex-column">
+          <h2 class="m-0 text-lg font-semibold text-color">Eliminar Examen</h2>
+          <span class="text-sm text-color-secondary mt-1">
+            Confirme la eliminacion del examen seleccionado
+          </span>
+        </div>
+      </div>
+    </template>
+
+    <!-- Content -->
+    <div class="pt-0 pb-4 flex flex-column gap-4">
+      <div
+        class="surface-card border-round-lg shadow-1 border-1 surface-border p-4 flex flex-column gap-3"
+      >
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-user text-primary"></i>
+          <span class="font-medium text-color">
+            {{ cancelTarget?.patientName || props.patientName }}
+          </span>
+        </div>
+
+        <div class="flex align-items-center gap-2 text-color-secondary text-sm">
+          <i class="pi pi-calendar"></i>
+          <span>{{
+            cancelTarget?.fecha
+              ? new Date(cancelTarget.fecha).toLocaleDateString("es-GT", {
+                  dateStyle: "long",
+                })
+              : "Sin fecha"
+          }}</span>
+        </div>
+
+        <div class="flex align-items-center gap-2 text-color-secondary text-sm">
+          <i class="pi pi-clipboard"></i>
+          <span>{{ cancelTarget?.tipo || "Sin tipo" }}</span>
+        </div>
+      </div>
+
+      <Message severity="warn" icon="pi pi-exclamation-triangle" class="w-full">
+        Esta acción no se puede deshacer.
+      </Message>
     </div>
+
+    <!-- Footer -->
+    <template #footer>
+      <div
+        class="flex justify-content-end align-items-center w-full gap-2 px-3 py-2 border-top-1 surface-border"
+      >
+        <Button
+          label="Cerrar"
+          icon="pi pi-times"
+          text
+          severity="secondary"
+          class="px-3 py-2 text-sm"
+          @click="showCancelDialog = false"
+          :disabled="deleting"
+        />
+        <Button
+          label="Eliminar Examen"
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
+          :loading="deleting"
+          class="px-4 py-2 text-sm font-medium hover:bg-red-50"
+          @click="confirmCancelExam"
+        />
+      </div>
+    </template>
   </Dialog>
 </template>
 
@@ -157,6 +299,7 @@ import Column from "primevue/column";
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
 import FileUpload from "primevue/fileupload";
+import Message from "primevue/message";
 import { ExamService } from "@/services/examService";
 import { useToast } from "primevue/usetoast";
 
@@ -168,7 +311,12 @@ const props = defineProps({
 
 const showUploadDialog = ref(false);
 const showNewExamDialog = ref(false);
+const showCancelDialog = ref(false);
+
 const creatingExam = ref(false);
+const deleting = ref(false);
+const cancelTarget = ref(null);
+
 const newExamTipo = ref("");
 const selectedFile = ref(null);
 const currentExam = ref(null);
@@ -187,6 +335,37 @@ const today = computed(() => {
 function openNewExamDialog() {
   if (!newExamTipo.value.trim()) return;
   showNewExamDialog.value = true;
+}
+
+function openCancelDialog(exam) {
+  cancelTarget.value = exam;
+  showCancelDialog.value = true;
+}
+
+async function confirmCancelExam() {
+  if (!cancelTarget.value) return;
+  deleting.value = true;
+  try {
+    await ExamService.delete(cancelTarget.value.id);
+    toast.add({
+      severity: "warn",
+      summary: "Examen cancelado",
+      detail: "El examen fue eliminado correctamente.",
+      life: 3000,
+    });
+    await loadExams();
+    showCancelDialog.value = false;
+  } catch (error) {
+    console.error("Error canceling exam:", error);
+    toast.add({
+      severity: "error",
+      summary: "Error al cancelar",
+      detail: "No se pudo cancelar el examen.",
+      life: 3000,
+    });
+  } finally {
+    deleting.value = false;
+  }
 }
 
 async function createExam() {
@@ -321,16 +500,13 @@ async function downloadPdf(exam) {
 .cursor-pointer :deep(tbody tr) {
   cursor: pointer;
 }
-
 :deep(.p-datatable-wrapper) {
   flex: 1;
   min-height: 0;
 }
-
 :deep(.p-paginator-bottom) {
   margin-top: auto;
 }
-
 :deep(h4) {
   padding: 0 !important;
   margin-top: 0.5rem;

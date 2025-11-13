@@ -4,7 +4,6 @@
     class="surface-card border-bottom-1 surface-border"
   >
     <template #start>
-      <!-- Brand / Search -->
       <div class="flex align-items-center gap-3">
         <AutoComplete
           v-model="searchQuery"
@@ -29,7 +28,6 @@
     </template>
   </Menubar>
 
-  <!-- Create Patient Dialog -->
   <Dialog
     v-model:visible="showCreateDialog"
     header="Crear Nuevo Paciente"
@@ -63,29 +61,33 @@ const searchQuery = ref("");
 const searchResults = ref([]);
 const showCreateDialog = ref(false);
 
-// filter by user roles
+// ✅ Filter menu by user permissions
 const visibleMenu = computed(() => {
-  const userRoles = Array.isArray(auth.roles) ? auth.roles : [];
+  const userPerms = Array.isArray(auth.user?.permissions)
+    ? auth.user.permissions
+    : [];
   return menuItems.filter((item) =>
-    Array.isArray(item.roles)
-      ? item.roles.some((r) => userRoles.includes(r))
+    Array.isArray(item.permissions)
+      ? item.permissions.length === 0 ||
+        item.permissions.some((perm) => userPerms.includes(perm))
       : true,
   );
 });
 
-// map to PrimeVue Menubar model
+// ✅ Map to PrimeVue Menubar model
 const menuModel = computed(() =>
   visibleMenu.value.map((item) => ({
     label: item.label,
     icon: item.icon,
     command: () => router.push(item.to),
+    style: item.style || {},
   })),
 );
 
-// search logic
+// ✅ Fixed search logic — PrimeVue passes { originalEvent, query }
 async function handleSearch(event) {
-  const query = event.query?.trim();
-  if (!query || query.length < 3) {
+  const query = event?.query?.trim() || "";
+  if (query.length < 3) {
     searchResults.value = [];
     return;
   }
@@ -100,7 +102,7 @@ async function handleSearch(event) {
 }
 
 function onSelectPatient(event) {
-  const patient = event.value;
+  const patient = event?.value;
   if (patient && patient.id) {
     searchQuery.value = "";
     searchResults.value = [];

@@ -3,37 +3,37 @@ export const menuItems = [
     label: "Dashboard",
     icon: "pi pi-chart-line",
     to: "/app/dashboard",
-    roles: ["admin", "doctor", "secretario"],
+    permissions: [], // accessible to all authenticated users
   },
   {
     label: "Calendario",
     icon: "pi pi-calendar",
     to: "/app/calendar",
-    roles: ["admin", "doctor", "assistant", "secretario"],
+    permissions: ["ver-citas"],
   },
   {
     label: "Mensajes WhatsApp",
     icon: "pi pi-send",
     to: "/app/whatsapp",
-    roles: ["admin", "doctor", "assistant"],
+    permissions: ["ver-mensajes"],
   },
   {
     label: "Formularios",
     icon: "pi pi-file-edit",
     to: "/app/formularios",
-    roles: ["admin", "doctor"],
+    permissions: ["ver-formularios"],
   },
   {
     label: "Roles & Permisos",
     icon: "pi pi-shield",
     to: "/app/admin",
-    roles: ["admin"],
+    permissions: ["manejar-usuarios"],
   },
   {
     label: "Perfil",
     icon: "pi pi-user",
     to: "/app/perfil",
-    roles: ["admin", "doctor", "assistant", "secretario"],
+    permissions: [], // any authenticated user
     style: {
       borderRadius: "2rem",
       background: "var(--surface-100)",
@@ -47,24 +47,24 @@ export const configMenuItems = [
     label: "Configuración",
     icon: "pi pi-cog",
     to: "/app/settings",
-    roles: ["admin", "doctor"],
+    permissions: ["manejar-usuarios", "ver-formularios"], // adjust as needed
   },
   {
     label: "Perfil",
     icon: "pi pi-user",
     to: "/app/perfil",
-    roles: ["admin", "doctor", "assistant"],
+    permissions: [],
   },
   {
     label: "Roles & Permisos",
     icon: "pi pi-shield",
     to: "/app/admin",
-    roles: ["admin"],
+    permissions: ["manejar-usuarios"],
   },
   {
     label: "Cerrar Sesión",
     icon: "pi pi-sign-out",
     to: "/logout",
-    roles: ["admin", "doctor", "assistant"],
+    permissions: [],
   },
 ];

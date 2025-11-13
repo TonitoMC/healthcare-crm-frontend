@@ -3,7 +3,7 @@ import App from "@/App.vue";
 import router from "@/router/index.js";
 import { createPinia } from "pinia";
 import { setupAuthGuard } from "@/plugins/authGuard";
-
+import { es } from "primelocale/js/es.js"; // ✅ Correct path for your version
 import PrimeVue from "primevue/config";
 import Aura from "@primeuix/themes/aura";
 import ToastService from "primevue/toastservice";
@@ -29,7 +29,7 @@ auth.restoreSession();
 
 setupAuthGuard(router);
 app.use(router);
-app.use(PrimeVue, { theme: { preset: Aura } });
+app.use(PrimeVue, { theme: { preset: Aura }, locale: es });
 app.use(ToastService);
 
 app.config.devtools = true;
