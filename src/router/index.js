@@ -59,7 +59,7 @@ const routes = [
         component: Formularios,
         meta: {
           requiresAuth: true,
-          permissions: ["ver-formularios"],
+          permissions: ["ver-cuestionarios"],
         },
       },
       {

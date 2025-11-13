@@ -21,7 +21,7 @@ export const menuItems = [
     label: "Formularios",
     icon: "pi pi-file-edit",
     to: "/app/formularios",
-    permissions: ["ver-formularios"],
+    permissions: ["ver-cuestionarios"],
   },
   {
     label: "Roles & Permisos",
