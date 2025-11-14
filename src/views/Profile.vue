@@ -56,7 +56,7 @@
                     v-model="passwords.new2"
                     toggleMask
                     :feedback="false"
-                    placeholder="Confirmar nueva contraseña"
+                    placeholder="Confirmar nueva"
                     class="w-full"
                   />
                 </div>

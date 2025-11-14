@@ -231,7 +231,7 @@ import { AppointmentService } from "@/services/appointmentService";
 import { ScheduleService } from "@/services/scheduleService";
 import { PatientService } from "@/services/patientService";
 import { getErrorMessage } from "@/utils/errorMessages";
-import { buildClinicDateTime, clinicDateString } from "@/utils/time";
+import { clinicDateString } from "@/utils/time";
 
 const props = defineProps({
   visible: Boolean,
@@ -242,17 +242,22 @@ const toast = useToast();
 
 const show = computed({
   get: () => props.visible,
-  set: (val) => emit("update:visible", val),
+  set: (v) => emit("update:visible", v),
 });
 
+// identical structure to creator
 const editDate = ref(new Date());
 const editDuration = ref(30);
+
 const savingEdit = ref(false);
 const savingCancel = ref(false);
+
 const freeSlots = ref([]);
 const patient = ref(null);
 
-/* Fetch patient info */
+/* -------------------------------------------------
+   1) PATIENT INFO
+---------------------------------------------------*/
 async function loadPatientInfo() {
   const id =
     props.appointment?.paciente_id ||
@@ -265,114 +270,176 @@ async function loadPatientInfo() {
   }
 
   try {
-    const data = await PatientService.getPatient(id);
-    patient.value = data;
-  } catch (err) {
-    console.error("Error fetching patient:", err);
+    patient.value = await PatientService.getPatient(id);
+  } catch {
     patient.value = { nombre: "Error al cargar", telefono: "" };
   }
 }
 
+/* -------------------------------------------------
+   2) IDENTICAL LOGIC → Build Date() the same way
+      creator does
+---------------------------------------------------*/
+
+function buildDateLikeCreator(rfcString) {
+  if (!rfcString) return new Date();
+
+  // backend sends: "2025-05-16 10:20:00-06"
+  // convert to ISO-compatible
+  const normalized = rfcString.replace(" ", "T");
+
+  if (isNaN(new Date(normalized).getTime())) {
+    return new Date();
+  }
+
+  return new Date(normalized);
+}
+
 watch(
-  [() => props.appointment, show],
-  async ([appt, visible]) => {
-    if (visible && appt) {
-      await loadPatientInfo();
-      editDate.value = appt.rfc3339 ? new Date(appt.rfc3339) : new Date();
-      editDuration.value =
-        Math.floor(appt.duracion / 60) ||
-        Math.floor(appt.endMinutes - appt.startMinutes || 30);
-    }
+  () => props.visible,
+  async (visible) => {
+    if (!visible || !props.appointment) return;
+
+    await loadPatientInfo();
+
+    // EXACT SAME construction logic as creator:
+    editDate.value = buildDateLikeCreator(props.appointment.fecha);
+
+    editDuration.value = Math.floor((props.appointment.duracion ?? 1800) / 60);
+
+    // PrimeVue internal refresh trick (same used in creator)
+    await nextTick();
+    editDate.value = new Date(editDate.value);
   },
   { immediate: true },
 );
 
-/* Free slots logic */
+/* -------------------------------------------------
+   3) FREE SLOT LOGIC — SAME AS CREATOR
+---------------------------------------------------*/
+
 const toMinutes = (hhmm) => {
-  const [h, m] = String(hhmm).split(":").map(Number);
+  const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 };
+
 const toHHMM = (mins) =>
   `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(
     mins % 60,
   ).padStart(2, "0")}`;
-const extractHHMM = (rfc3339) =>
-  typeof rfc3339 === "string" && rfc3339.length >= 16
-    ? rfc3339.slice(11, 16)
-    : null;
 
-function computeFreeSlots(businessRanges, dayAppointments, minGap = 15) {
-  if (!Array.isArray(businessRanges) || businessRanges.length === 0) return [];
-  const booked = (dayAppointments || [])
+const extractHHMM = (value) => {
+  if (typeof value !== "string") return null;
+
+  // Case 1 → RFC3339-like ("2025-05-16T09:00:00-06")
+  if (value.length >= 16 && value.includes("T")) {
+    return value.slice(11, 16);
+  }
+
+  // Case 2 → raw time-only ("09:00:00")
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(value)) {
+    return value.slice(0, 5);
+  }
+
+  return null;
+};
+
+function computeFreeSlots(ranges, apps, minGap = 15) {
+  if (!ranges || !ranges.length) return [];
+
+  const booked = apps
     .map((a) => {
-      const startHHMM = extractHHMM(a.fecha);
-      if (!startHHMM) return null;
-      const start = toMinutes(startHHMM);
-      const durMin = Math.max(0, Math.floor((a.duracion ?? 0) / 60));
-      return { start, end: start + durMin };
+      const hhmm = extractHHMM(a.fecha);
+      if (!hhmm) return null;
+      const start = toMinutes(hhmm);
+      const dur = Math.floor((a.duracion ?? 0) / 60);
+      return { start, end: start + dur };
     })
     .filter(Boolean)
     .sort((a, b) => a.start - b.start);
 
   const free = [];
-  businessRanges.forEach((r) => {
+
+  ranges.forEach((r) => {
     const rs = extractHHMM(r.start);
     const re = extractHHMM(r.end);
     if (!rs || !re) return;
+
     const rangeStart = toMinutes(rs);
     const rangeEnd = toMinutes(re);
+
     let cursor = rangeStart;
+
     for (const appt of booked) {
       if (appt.end <= rangeStart || appt.start >= rangeEnd) continue;
+
       const blockStart = Math.max(appt.start, rangeStart);
       const blockEnd = Math.min(appt.end, rangeEnd);
+
       if (blockStart - cursor >= minGap) {
         free.push(`${toHHMM(cursor)} - ${toHHMM(blockStart)}`);
       }
       cursor = Math.max(cursor, blockEnd);
     }
+
     if (rangeEnd - cursor >= minGap) {
       free.push(`${toHHMM(cursor)} - ${toHHMM(rangeEnd)}`);
     }
   });
+
   return free;
 }
 
 async function refreshFreeSlots() {
   try {
     const dateStr = clinicDateString(editDate.value);
-    const [schedule, appts] = await Promise.all([
+
+    const [schedule, apptsRaw] = await Promise.all([
       ScheduleService.getEffectiveDay(dateStr),
       AppointmentService.getByDate(dateStr),
     ]);
-    const ranges = Array.isArray(schedule?.ranges) ? schedule.ranges : [];
-    freeSlots.value = computeFreeSlots(ranges, appts, 15);
-  } catch (err) {
-    console.error("Slots load error:", err);
+
+    const appts = Array.isArray(apptsRaw) ? apptsRaw : [];
+
+    freeSlots.value = computeFreeSlots(schedule?.ranges || [], appts, 15);
+  } catch {
     freeSlots.value = [];
   }
 }
 
-function selectSlot(slotRange) {
-  const [start] = String(slotRange).split(" - ");
-  if (!start) return;
-  const current = new Date(editDate.value);
-  const [h, m] = start.split(":").map(Number);
-  current.setHours(h, m, 0, 0);
-  editDate.value = new Date(current);
+watch(
+  () => [show.value, editDate.value],
+  async ([visible]) => {
+    if (visible && editDate.value) await refreshFreeSlots();
+  },
+  { immediate: true },
+);
+
+/* -------------------------------------------------
+   4) SLOT CLICK BEHAVIOR — COPY / PASTE FROM CREATOR
+---------------------------------------------------*/
+
+function selectSlot(slot) {
+  const [hh, mm] = slot.split(" - ")[0].split(":").map(Number);
+  const newD = new Date(editDate.value);
+  newD.setHours(hh, mm, 0, 0);
+
+  editDate.value = new Date(newD);
+
+  nextTick(() => {
+    editDate.value = new Date(newD);
+  });
 }
 
-watch([editDate, show], async ([date, visible]) => {
-  if (visible && date) await refreshFreeSlots();
-});
+/* -------------------------------------------------
+   5) SAVE & CANCEL
+---------------------------------------------------*/
 
-/* Save / Cancel */
 const saveEdit = async () => {
   savingEdit.value = true;
   try {
-    const dateISO = editDate.value.toISOString();
     await AppointmentService.update(props.appointment.id, {
-      fecha: dateISO,
+      fecha: editDate.value.toISOString(),
       duracion: editDuration.value * 60,
     });
 
@@ -382,6 +449,7 @@ const saveEdit = async () => {
       detail: "La cita ha sido actualizada correctamente",
       life: 3000,
     });
+
     emit("updated");
     show.value = false;
   } catch (err) {
@@ -400,21 +468,16 @@ const cancelAppt = async () => {
   savingCancel.value = true;
   try {
     await AppointmentService.delete(props.appointment.id);
+
     toast.add({
       severity: "warn",
       summary: "Cita cancelada",
-      detail: "La cita fue eliminada correctamente",
+      detail: "La cita fue eliminada",
       life: 3000,
     });
+
     emit("cancelled");
     show.value = false;
-  } catch (err) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: getErrorMessage(err),
-      life: 5000,
-    });
   } finally {
     savingCancel.value = false;
   }
@@ -425,57 +488,3 @@ const handleClose = () => {
   patient.value = null;
 };
 </script>
-
-<style scoped>
-:deep(.p-dialog-content) {
-  min-height: 36rem;
-}
-
-/* Sidebar height & form alignment */
-aside {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-}
-
-aside .p-panel {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-}
-
-aside .p-scrollpanel {
-  flex: 1 1 auto;
-}
-
-/* Normalize DatePicker & InputNumber */
-:deep(.p-datepicker) {
-  width: 100%;
-}
-:deep(.p-datepicker .p-inputtext) {
-  width: 100% !important;
-  padding: 0.75rem 1rem !important;
-  box-sizing: border-box;
-}
-:deep(.p-datepicker .p-input-icon-right .pi-calendar) {
-  right: 0.75rem !important;
-  color: var(--text-color-secondary);
-  font-size: 1rem;
-}
-:deep(.p-inputnumber) {
-  width: 100%;
-  display: flex;
-  align-items: stretch;
-  box-sizing: border-box;
-}
-:deep(.p-inputnumber-input) {
-  flex: 1 1 auto;
-  width: 100%;
-  padding: 0.75rem 1rem !important;
-  box-sizing: border-box;
-}
-:deep(.p-inputnumber-button) {
-  flex: 0 0 auto;
-}
-</style>

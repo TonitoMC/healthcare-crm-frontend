@@ -13,14 +13,7 @@
     <template #header>
       <div class="flex align-items-center gap-3 w-full">
         <i class="pi pi-pencil text-3xl"></i>
-        <div class="flex flex-column flex-1">
-          <h2 class="m-0 text-2xl font-semibold">Editar Cuestionario</h2>
-          <div class="flex gap-2 mt-2 flex-wrap">
-            <Tag :value="`Actual: ${questionnaire?.version || 'v1.0'}`" class="bg-white-alpha-30" />
-            <i class="pi pi-arrow-right text-white"></i>
-            <Tag :value="`Nueva: ${form.version}`" severity="warning" class="font-bold" />
-          </div>
-        </div>
+        <h2 class="m-0 text-2xl font-semibold">Editar Cuestionario</h2>
       </div>
     </template>
 
@@ -35,37 +28,29 @@
         </template>
 
         <div class="grid">
+          <!-- NOMBRE (READONLY) -->
           <div class="col-12 md:col-8">
             <div class="field">
-              <label for="nombre" class="font-semibold">Nombre del Cuestionario</label>
+              <label class="font-semibold mb-1 block"
+                >Nombre del Cuestionario</label
+              >
               <InputText
-                id="nombre"
                 v-model="form.nombre"
-                required
-                class="w-full"
-                placeholder="Ej: Consulta General"
+                class="w-full opacity-80"
+                readonly
               />
             </div>
           </div>
 
+          <!-- VERSION (READ-ONLY, AUTO-FILLED) -->
           <div class="col-12 md:col-4">
             <div class="field">
-              <label for="version" class="font-semibold">Nueva Versión</label>
-              <div class="p-inputgroup">
-                <InputText
-                  id="version"
-                  v-model="form.version"
-                  required
-                  placeholder="Ej: v2.0"
-                />
-                <Button
-                  icon="pi pi-plus"
-                  severity="secondary"
-                  type="button"
-                  @click="autoIncrementVersion"
-                  v-tooltip.top="'Auto incrementar'"
-                />
-              </div>
+              <label class="font-semibold mb-1 block">Versión Nueva</label>
+              <InputText
+                v-model="form.version"
+                class="w-full opacity-80"
+                readonly
+              />
             </div>
           </div>
         </div>
@@ -78,7 +63,10 @@
             <div class="flex align-items-center gap-2">
               <i class="pi pi-list text-primary"></i>
               <span class="font-semibold">Preguntas del Cuestionario</span>
-              <Tag :value="`${form.questions.length} preguntas`" severity="info" />
+              <Tag
+                :value="`${form.questions.length} preguntas`"
+                severity="info"
+              />
             </div>
             <Button
               label="Agregar Pregunta"
@@ -94,7 +82,7 @@
         <div v-if="form.questions.length === 0" class="text-center py-6">
           <i class="pi pi-inbox text-6xl text-400 mb-3"></i>
           <p class="text-color-secondary m-0">
-            No hay preguntas. Haz clic en "Agregar Pregunta" para comenzar.
+            No hay preguntas. Haz clic en "Agregar Pregunta".
           </p>
         </div>
 
@@ -106,6 +94,7 @@
             :class="{ 'border-red-500': questionErrors[index] }"
           >
             <div class="flex align-items-start gap-3">
+              <!-- Order -->
               <div
                 class="flex align-items-center justify-content-center bg-primary text-primary-contrast border-circle flex-shrink-0"
                 style="width: 2.5rem; height: 2.5rem"
@@ -113,6 +102,7 @@
                 <span class="font-bold">{{ question.order }}</span>
               </div>
 
+              <!-- Question -->
               <div class="flex-1">
                 <div class="field mb-3">
                   <InputText
@@ -129,6 +119,7 @@
                 </div>
 
                 <div class="grid">
+                  <!-- Tipo -->
                   <div class="col-12 md:col-6">
                     <div class="field">
                       <label class="font-semibold text-sm">Tipo</label>
@@ -142,18 +133,18 @@
                     </div>
                   </div>
 
+                  <!-- Bilateral -->
                   <div class="col-12 md:col-6">
-                    <div class="field">
-                      <label class="font-semibold text-sm flex align-items-center gap-2">
-                        <Checkbox v-model="question.bilateral" :binary="true" />
-                        <i class="pi pi-arrows-h text-orange-500"></i>
-                        Bilateral
-                      </label>
+                    <div class="field flex align-items-center gap-2">
+                      <Checkbox v-model="question.bilateral" :binary="true" />
+                      <i class="pi pi-arrows-h text-orange-500"></i>
+                      <label class="font-semibold text-sm m-0">Bilateral</label>
                     </div>
                   </div>
                 </div>
               </div>
 
+              <!-- Actions -->
               <div class="flex flex-column gap-1">
                 <Button
                   icon="pi pi-arrow-up"
@@ -163,7 +154,6 @@
                   severity="secondary"
                   :disabled="index === 0"
                   @click="moveQuestion(index, -1)"
-                  v-tooltip.left="'Mover arriba'"
                 />
                 <Button
                   icon="pi pi-arrow-down"
@@ -173,7 +163,6 @@
                   severity="secondary"
                   :disabled="index === form.questions.length - 1"
                   @click="moveQuestion(index, 1)"
-                  v-tooltip.left="'Mover abajo'"
                 />
                 <Button
                   icon="pi pi-trash"
@@ -183,7 +172,6 @@
                   severity="danger"
                   :disabled="form.questions.length === 1"
                   @click="removeQuestion(index)"
-                  v-tooltip.left="'Eliminar'"
                 />
               </div>
             </div>
@@ -191,11 +179,19 @@
         </div>
       </Panel>
 
-      <!-- Footer Actions -->
-      <div class="flex justify-content-end gap-2 pt-3 border-top-1 surface-border">
-        <Button label="Cancelar" icon="pi pi-times" text severity="secondary" @click="handleClose" />
+      <!-- Footer -->
+      <div
+        class="flex justify-content-end gap-2 pt-3 border-top-1 surface-border"
+      >
         <Button
-          label="Crear Nueva Versión"
+          label="Cancelar"
+          icon="pi pi-times"
+          text
+          severity="secondary"
+          @click="handleClose"
+        />
+        <Button
+          label="Guardar"
           icon="pi pi-check"
           type="submit"
           :disabled="!isFormValid"
@@ -206,206 +202,190 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import Panel from 'primevue/panel'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
-import Checkbox from 'primevue/checkbox'
-import Tag from 'primevue/tag'
+import { ref, computed, watch } from "vue";
+import Dialog from "primevue/dialog";
+import Panel from "primevue/panel";
+import Button from "primevue/button";
+import InputText from "primevue/inputtext";
+import Select from "primevue/select";
+import Checkbox from "primevue/checkbox";
+import Tag from "primevue/tag";
 
 const props = defineProps({
   visible: Boolean,
   questionnaire: Object,
-})
+});
 
-const emit = defineEmits(['update:visible', 'save'])
+const emit = defineEmits(["update:visible", "save"]);
 
 const show = computed({
   get: () => props.visible,
-  set: (val) => emit('update:visible', val),
-})
+  set: (val) => emit("update:visible", val),
+});
 
+/* ------------------------------------------
+   VERSION AUTO-INCREMENT LOGIC
+------------------------------------------- */
+function nextVersion(v) {
+  if (!v || !v.includes(".")) return "1.0";
+
+  let [maj, min] = v.split(".").map(Number);
+
+  if (Number.isNaN(maj) || Number.isNaN(min)) {
+    return "1.0";
+  }
+
+  if (min < 9) return `${maj}.${min + 1}`;
+  return `${maj + 1}.0`;
+}
+
+/* ------------------------------------------
+   TYPE OPTIONS (UI)
+------------------------------------------- */
 const questionTypes = [
-  { label: 'Texto', value: 'texto' },
-  { label: 'Número', value: 'entero' },
-  { label: 'Número Decimal', value: 'float' },
-  { label: 'Sí/No', value: 'booleano' },
-]
+  { label: "Texto", value: "texto" },
+  { label: "Número", value: "entero" },
+  { label: "Número Decimal", value: "float" },
+  { label: "Sí/No", value: "booleano" },
+];
+
+/**
+ * Map backend data_type -> UI value
+ *  backend: int | float | bool | string
+ *  ui:      entero | float | booleano | texto
+ * Also idempotent if it already comes as ui value.
+ */
+const toUiType = (dataType) => {
+  if (!dataType) return "texto";
+
+  const uiValues = ["texto", "entero", "float", "booleano"];
+  if (uiValues.includes(dataType)) return dataType;
+
+  const map = {
+    int: "entero",
+    float: "float",
+    bool: "booleano",
+    boolean: "booleano",
+    string: "texto",
+    text: "texto",
+  };
+
+  return map[dataType] || "texto";
+};
 
 const form = ref({
-  nombre: '',
-  version: '',
+  nombre: "",
+  version: "",
   questions: [],
-})
+});
 
-const questionErrors = ref({})
+const questionErrors = ref({});
 
 const isFormValid = computed(() => {
-  const hasName = form.value.nombre.trim().length > 0
-  const hasVersion = form.value.version.trim().length > 0
-  const hasQuestions = form.value.questions.length > 0
-  const allQuestionsValid = form.value.questions.every((q) => q.name.trim().length > 0)
-
-  return hasName && hasVersion && hasQuestions && allQuestionsValid
-})
+  return (
+    form.value.nombre.trim().length > 0 &&
+    form.value.version.trim().length > 0 &&
+    form.value.questions.length > 0 &&
+    form.value.questions.every((q) => q.name.trim().length > 0)
+  );
+});
 
 watch(
   () => props.questionnaire,
-  (newVal) => {
-    if (newVal && props.visible) {
-      initializeForm()
-    }
+  (val) => {
+    if (val && props.visible) initializeForm();
   },
-  { immediate: true, deep: true }
-)
+  { immediate: true },
+);
 
 watch(
   () => props.visible,
-  (newVal) => {
-    if (newVal && props.questionnaire) {
-      initializeForm()
-    }
-  }
-)
+  (val) => {
+    if (val && props.questionnaire) initializeForm();
+  },
+);
 
 const initializeForm = () => {
-  if (!props.questionnaire) return
+  if (!props.questionnaire) return;
 
   form.value = {
-    nombre: props.questionnaire.nombre || '',
-    version: generateNextVersion(props.questionnaire.version),
-    questions: prepareQuestions(props.questionnaire.questions || []),
-  }
+    nombre: props.questionnaire.nombre,
+    version: nextVersion(props.questionnaire.version), // auto-assigned, read-only
+    questions: prepareQuestions(props.questionnaire.schema?.questions || []),
+  };
 
-  questionErrors.value = {}
-}
+  questionErrors.value = {};
+};
 
-const generateNextVersion = (currentVersion) => {
-  if (!currentVersion) return 'v1.0'
-
-  const match = currentVersion.match(/v?(\d+)\.(\d+)/)
-  if (match) {
-    const major = parseInt(match[1])
-    const minor = parseInt(match[2])
-    return `v${major}.${minor + 1}`
-  }
-
-  return 'v2.0'
-}
-
-const autoIncrementVersion = () => {
-  form.value.version = generateNextVersion(form.value.version)
-}
-
-const prepareQuestions = (questions) => {
-  if (!Array.isArray(questions) || questions.length === 0) return []
-
-  return questions.map((q, index) => ({
-    id: q.id || null,
-    name: q.label || q.name || q.nombre || '',
-    type: reverseMapType(q.data_type || q.type) || 'texto',
-    bilateral: q.type === 'bilateral' || Boolean(q.bilateral),
-    order: q.order || index + 1,
-  }))
-}
-
-const reverseMapType = (dataType) => {
-  const typeMap = {
-    string: 'texto',
-    int: 'entero',
-    float: 'float',
-    bool: 'booleano',
-  }
-  return typeMap[dataType] || 'texto'
-}
+/**
+ * questions from backend:
+ * {
+ *   type: "bilateral" | "unilateral",
+ *   label: "Agudeza Visual",
+ *   order: 1,
+ *   data_type: "int" | "float" | "bool" | "string"
+ * }
+ */
+const prepareQuestions = (questions) =>
+  (questions || []).map((q, i) => ({
+    id: q.id ?? null,
+    name: q.label || q.name || "",
+    // UI type for <Select>
+    type: toUiType(q.data_type),
+    // bilateral flag from backend type or explicit boolean
+    bilateral: q.type === "bilateral" || Boolean(q.bilateral),
+    order: q.order || i + 1,
+  }));
 
 const addQuestion = () => {
-  const newOrder = form.value.questions.length + 1
   form.value.questions.push({
     id: null,
-    name: '',
-    type: 'texto',
+    name: "",
+    type: "texto",
     bilateral: false,
-    order: newOrder,
-  })
-}
+    order: form.value.questions.length + 1,
+  });
+};
 
-const removeQuestion = (index) => {
-  if (form.value.questions.length > 1) {
-    form.value.questions.splice(index, 1)
-    reorderQuestions()
-    delete questionErrors.value[index]
-  }
-}
+const removeQuestion = (i) => {
+  if (form.value.questions.length <= 1) return;
+  form.value.questions.splice(i, 1);
+  reorder();
+};
 
-const moveQuestion = (index, direction) => {
-  const newIndex = index + direction
-  if (newIndex < 0 || newIndex >= form.value.questions.length) return
+const moveQuestion = (i, d) => {
+  const ni = i + d;
+  if (ni < 0 || ni >= form.value.questions.length) return;
 
-  const temp = form.value.questions[index]
-  form.value.questions[index] = form.value.questions[newIndex]
-  form.value.questions[newIndex] = temp
+  const tmp = form.value.questions[i];
+  form.value.questions[i] = form.value.questions[ni];
+  form.value.questions[ni] = tmp;
 
-  reorderQuestions()
-}
+  reorder();
+};
 
-const reorderQuestions = () => {
-  form.value.questions.forEach((q, i) => {
-    q.order = i + 1
-  })
-}
+const reorder = () => {
+  form.value.questions.forEach((q, i) => (q.order = i + 1));
+};
 
-const validateQuestion = (index) => {
-  const question = form.value.questions[index]
-  const errors = {}
-
-  if (!question.name.trim()) {
-    errors.name = 'El nombre de la pregunta es requerido'
-  } else if (question.name.trim().length < 3) {
-    errors.name = 'El nombre debe tener al menos 3 caracteres'
-  }
-
-  if (Object.keys(errors).length > 0) {
-    questionErrors.value[index] = errors
+const validateQuestion = (i) => {
+  const q = form.value.questions[i];
+  if (!q.name.trim()) {
+    questionErrors.value[i] = { name: "El nombre es obligatorio" };
   } else {
-    delete questionErrors.value[index]
+    delete questionErrors.value[i];
   }
-}
+};
 
 const handleSubmit = () => {
-  // Validate all questions
-  form.value.questions.forEach((_, index) => {
-    validateQuestion(index)
-  })
+  form.value.questions.forEach((_, i) => validateQuestion(i));
+  if (!isFormValid.value) return;
 
-  if (!isFormValid.value) {
-    return
-  }
-
-  emit('save', {
+  emit("save", {
     ...form.value,
-    originalId: props.questionnaire?.id,
-  })
-}
+    originalId: props.questionnaire.id,
+  });
+};
 
-const handleClose = () => {
-  show.value = false
-}
+const handleClose = () => (show.value = false);
 </script>
-
-<style scoped>
-:deep(.p-panel-header) {
-  background: var(--surface-50);
-  border-bottom: 1px solid var(--surface-border);
-}
-
-:deep(.p-dialog-header) {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.border-red-500 {
-  border-color: var(--red-500) !important;
-}
-</style>

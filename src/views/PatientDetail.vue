@@ -69,7 +69,7 @@
         <label class="block mb-2 text-sm">Sexo</label>
         <Dropdown
           v-model="editForm.sexo"
-          :options="['M', 'F']"
+          :options="['Masculino', 'Femenino']"
           placeholder="Seleccionar"
           class="w-full text-sm"
         />
@@ -81,7 +81,16 @@
           @click="showEditDialog = false"
           class="text-sm"
         />
-        <Button label="Guardar" @click="savePatient" class="text-sm" />
+
+        <Button
+          label="Guardar"
+          @click="savePatient"
+          class="text-sm"
+          severity="success"
+          :disabled="
+            !(editForm.nombre && editForm.fecha_nacimiento && editForm.sexo)
+          "
+        />
       </div>
     </div>
   </Dialog>
