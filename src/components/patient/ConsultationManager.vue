@@ -7,10 +7,12 @@
     }"
   >
     <template #title>Consultas</template>
+
     <template #content>
-      <!-- New Consultation Form -->
+      <!-- NEW CONSULTATION FORM -->
       <div class="mb-4 p-3 border-1 border-round surface-border">
         <h4 class="text-lg p-0 font-semibold mb-3">Nueva Consulta</h4>
+
         <div class="flex gap-2">
           <InputText
             v-model="newMotivo"
@@ -20,28 +22,30 @@
           <Button
             label="Crear"
             icon="pi pi-plus"
-            @click="createNewConsultation"
+            @click="beginConsultationFlow"
           />
         </div>
       </div>
 
-      <!-- Consultation List -->
+      <!-- CONSULTATION LIST -->
       <div class="flex-1 min-h-0 overflow-hidden">
         <DataTable
           :value="consultations"
-          :rows="5"
           paginator
+          :rows="4"
           scrollable
           scrollHeight="flex"
-          @row-click="openDetail"
           selectionMode="single"
+          @row-click="openDetail"
           class="cursor-pointer flex-1"
         >
           <Column field="fecha" header="Fecha">
             <template #body="{ data }">{{ formatDate(data.fecha) }}</template>
           </Column>
+
           <Column field="motivo" header="Motivo" />
-          <Column field="tratamientos" header="Tratamientos">
+
+          <Column header="Tratamientos">
             <template #body="{ data }">
               <span class="text-color-secondary italic">
                 {{
@@ -52,14 +56,16 @@
               </span>
             </template>
           </Column>
-          <Column field="diagnosticos" header="Diagnósticos">
+
+          <Column header="Diagnósticos">
             <template #body="{ data }">
               <span class="text-color-secondary italic">
                 {{ data.diagnostics?.map((d) => d.nombre).join(", ") || "—" }}
               </span>
             </template>
           </Column>
-          <Column field="completada" header="Estado">
+
+          <Column header="Estado">
             <template #body="{ data }">
               <Tag
                 :severity="data.completada ? 'success' : 'warning'"
@@ -72,11 +78,11 @@
     </template>
   </Card>
 
-  <!-- Consultation Detail Dialog -->
+  <!-- CONSULTATION DETAIL -->
   <Dialog
     v-model:visible="showDetailDialog"
     header="Detalle de Consulta"
-    :modal="true"
+    modal
     style="width: 600px"
   >
     <div v-if="currentConsultation" class="flex flex-column gap-3">
@@ -84,10 +90,12 @@
         <label class="font-semibold">Motivo:</label>
         <p>{{ currentConsultation.motivo }}</p>
       </div>
+
       <div>
         <label class="font-semibold">Fecha:</label>
         <p>{{ formatDate(currentConsultation.fecha) }}</p>
       </div>
+
       <div>
         <label class="font-semibold">Estado:</label>
         <Tag
@@ -96,35 +104,35 @@
         />
       </div>
 
-      <!-- 🩹 Placeholder: Tratamientos -->
-      <div>
-        <label class="font-semibold">Tratamientos:</label>
-        <p class="text-color-secondary italic">
-          {{ currentConsultation.tratamientos || "No especificado" }}
-        </p>
-      </div>
-
-      <!-- 🧠 Placeholder: Diagnósticos -->
-      <div>
-        <label class="font-semibold">Diagnósticos:</label>
-        <p class="text-color-secondary italic">
-          {{ currentConsultation.diagnosticos || "No especificado" }}
-        </p>
-      </div>
-
       <div
         v-if="!currentConsultation.completada"
-        class="flex gap-2 justify-content-end"
+        class="flex justify-content-end"
       >
         <Button
           label="Marcar como Completada"
           icon="pi pi-check"
-          @click="markAsComplete"
           severity="success"
+          @click="markAsComplete"
         />
       </div>
     </div>
   </Dialog>
+
+  <!-- SELECT QUESTIONNAIRE (with motivo text inside) -->
+  <SelectQuestionnaireModal
+    v-model:visible="showSelectModal"
+    :motivo="newMotivo"
+    @update:motivo="newMotivo = $event"
+    @selected="onQuestionnaireChosen"
+  />
+
+  <!-- ANSWERS MODAL -->
+  <QuestionnaireAnswersModal
+    v-if="selectedQuestionnaire"
+    v-model:visible="showAnswerModal"
+    :questionnaire="selectedQuestionnaire"
+    @save="saveAnswers"
+  />
 </template>
 
 <script setup>
@@ -134,13 +142,18 @@ import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Dialog from "primevue/dialog";
-import InputText from "primevue/inputtext";
 import Tag from "primevue/tag";
+import InputText from "primevue/inputtext";
+
+import SelectQuestionnaireModal from "@/components/patient/SelectQuestionnaireModal.vue";
+import QuestionnaireAnswersModal from "@/components/patient/QuestionnaireAnswersModal.vue";
+
+import { ConsultationService } from "@/services/consultationService";
 import { useConsultationManager } from "../../composables/useConsultationManager";
 
 const props = defineProps({
-  patientId: { type: Number, required: true },
-  consultations: { type: Array, default: () => [] },
+  patientId: Number,
+  consultations: Array,
 });
 
 const {
@@ -151,18 +164,55 @@ const {
   markComplete,
 } = useConsultationManager();
 
-const showDetailDialog = ref(false);
 const newMotivo = ref("");
+const showDetailDialog = ref(false);
 
-async function createNewConsultation() {
+// Questionnaire flow
+const showSelectModal = ref(false);
+const showAnswerModal = ref(false);
+const selectedQuestionnaire = ref(null);
+const pendingConsultationId = ref(null);
+
+/* STEP 1 — Open select questionnaire modal */
+function beginConsultationFlow() {
   if (!newMotivo.value.trim()) return;
-  await createConsultation({
+  showSelectModal.value = true;
+}
+
+/* STEP 2 — User selected questionnaire */
+async function onQuestionnaireChosen(questionnaire) {
+  selectedQuestionnaire.value = questionnaire;
+
+  // Create consultation with selected questionnaire
+  const { id } = await ConsultationService.create({
     paciente_id: props.patientId,
     motivo: newMotivo.value,
+    cuestionario_id: questionnaire.id,
   });
+
+  pendingConsultationId.value = id;
+
+  // Open answers modal
+  showAnswerModal.value = true;
+
+  // clear motive field
   newMotivo.value = "";
 }
 
+/* STEP 3 — Save answers */
+async function saveAnswers(answersJson) {
+  await ConsultationService.addAnswers(
+    pendingConsultationId.value,
+    answersJson,
+  );
+
+  await loadConsultations(props.patientId);
+
+  showAnswerModal.value = false;
+  selectedQuestionnaire.value = null;
+}
+
+/* LIST / DETAILS */
 function openDetail(event) {
   currentConsultation.value = event.data;
   showDetailDialog.value = true;
@@ -170,9 +220,8 @@ function openDetail(event) {
 
 function formatDate(ddmmyyyy) {
   if (!ddmmyyyy) return "—";
-  const [day, month, year] = ddmmyyyy.split("-");
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString();
+  const [d, m, y] = ddmmyyyy.split("-");
+  return new Date(y, m - 1, d).toLocaleDateString();
 }
 
 async function markAsComplete() {
@@ -186,11 +235,5 @@ loadConsultations(props.patientId);
 <style scoped>
 .cursor-pointer :deep(tbody tr) {
   cursor: pointer;
-}
-
-:deep(h4) {
-  padding: 0 !important;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
 }
 </style>

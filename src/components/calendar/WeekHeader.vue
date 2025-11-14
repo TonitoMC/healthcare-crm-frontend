@@ -27,7 +27,6 @@
       </div>
     </div>
 
-    <!-- Render the modal ONLY after a day is selected -->
     <EditHoursModal
       v-if="selectedDay"
       v-model:visible="editVisible"
@@ -53,27 +52,42 @@ const { weekDays, dayNames, isToday, effectiveSchedules, loadSchedules } =
     loadSchedules: { type: Function, required: true },
   });
 
-// ✅ Access auth store
 const auth = useAuthStore();
-
-// ✅ Compute permission
 const canEdit = computed(() => auth.permissions.includes("editar-horarios"));
 
 const editVisible = ref(false);
 const selectedDay = ref(null);
 
+// 🔥 FIX: NO timezones, clone only Y/M/D
+function cloneLocal(day) {
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate());
+}
+
 function openEdit(day) {
   if (!day) return;
-  selectedDay.value = new Date(day);
+  selectedDay.value = cloneLocal(day); // 🔥 FIX — same exact calendar day
   editVisible.value = true;
 }
 
+// Create local YYYY-MM-DD (no TZ)
+function localDateString(date) {
+  return (
+    date.getFullYear() +
+    "-" +
+    String(date.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(date.getDate()).padStart(2, "0")
+  );
+}
+
 function getRangesFor(day) {
-  if (!day || !effectiveSchedules?.length) return [];
-  const dateStr = day.toISOString().slice(0, 10);
+  if (!day || !effectiveSchedules.length) return [];
+  const dateStr = localDateString(day);
+
   const schedule = effectiveSchedules.find(
     (s) => s?.date?.slice(0, 10) === dateStr,
   );
+
   return (
     schedule?.ranges?.map((r) => ({
       start: r.start.slice(11, 16),
@@ -83,8 +97,9 @@ function getRangesFor(day) {
 }
 
 function getDayDataFor(day) {
-  if (!day || !effectiveSchedules?.length) return null;
-  const dateStr = day.toISOString().slice(0, 10);
+  if (!day || !effectiveSchedules.length) return null;
+  const dateStr = localDateString(day);
+
   return (
     effectiveSchedules.find((s) => s?.date?.slice(0, 10) === dateStr) || null
   );
