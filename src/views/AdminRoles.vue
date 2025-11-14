@@ -45,7 +45,7 @@
       :currentRole="currentRole"
       :permissions="permissions"
       :selected="selectedPermissionIds"
-      readOnly
+      @save="saveRolePermissions"
       @close="closePermissionsDialog"
     />
 
@@ -63,7 +63,7 @@
 
         <MultiSelect
           v-model="selectedUserRoleIds"
-          :options="roles"
+          :options="roles.filter((r) => r.nombre !== 'admin')"
           optionLabel="nombre"
           optionValue="id"
           placeholder="Selecciona roles"
@@ -133,6 +133,7 @@
     <Toast />
   </div>
 </template>
+
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import Button from "primevue/button";
@@ -176,14 +177,28 @@ const filters = ref({ roles: "", permissions: "" });
 const filteredRoles = computed(() => {
   const q = filters.value.roles.trim().toLowerCase();
   if (!q) return roles.value;
-  return roles.value.filter((r) =>
-    [r.nombre, r.descripcion].some((v) => (v || "").toLowerCase().includes(q)),
-  );
+
+  return roles.value.filter((role) => {
+    const nameMatch =
+      (role.nombre || "").toLowerCase().includes(q) ||
+      (role.descripcion || "").toLowerCase().includes(q);
+
+    const permSet = rolePermissionsMap.value.get(role.id) || new Set();
+
+    const permNames = permissions.value
+      .filter((p) => permSet.has(p.id))
+      .map((p) => p.nombre.toLowerCase());
+
+    const permMatch = permNames.some((p) => p.includes(q));
+
+    return nameMatch || permMatch;
+  });
 });
 
 const filteredPermissions = computed(() => {
   const q = filters.value.permissions.trim().toLowerCase();
   if (!q) return permissions.value;
+
   return permissions.value.filter((p) =>
     [p.nombre, p.descripcion].some((v) => (v || "").toLowerCase().includes(q)),
   );
@@ -227,7 +242,6 @@ async function loadRolesAndPermissions() {
         );
         entries.push([r.id, new Set(normalized)]);
       } catch (err) {
-        console.warn(`Error loading permissions for role ${r.id}`, err);
         entries.push([r.id, new Set()]);
       }
     }
@@ -247,9 +261,8 @@ async function loadRolesAndPermissions() {
 async function loadUsers() {
   loading.value.users = true;
   try {
-    users.value = await UserService.listUsersEnriched(); // ← NEW
+    users.value = await UserService.listUsersEnriched();
   } catch (err) {
-    console.error("Error loading users:", err);
     toast.add({
       severity: "error",
       summary: "Error al cargar usuarios",
@@ -273,9 +286,46 @@ function closePermissionsDialog() {
   currentRole.value = null;
 }
 
+async function saveRolePermissions(newPermissionIds) {
+  if (!currentRole.value) return;
+
+  const roleId = currentRole.value.id;
+
+  try {
+    // backend update
+    await RoleService.updateRolePermissions(roleId, newPermissionIds);
+
+    // update local map
+    rolePermissionsMap.value.set(roleId, new Set(newPermissionIds));
+    rolePermissionsMap.value = new Map(rolePermissionsMap.value);
+
+    toast.add({
+      severity: "success",
+      summary: "Permisos actualizados",
+      life: 2000,
+    });
+
+    closePermissionsDialog();
+  } catch (err) {
+    console.error(err);
+    toast.add({
+      severity: "error",
+      summary: "Error al actualizar permisos",
+      life: 2500,
+    });
+  }
+}
+
 function openAssignRolesDialog(user) {
   currentUser.value = user;
-  selectedUserRoleIds.value = [...(user.roles || [])];
+
+  selectedUserRoleIds.value = (user.roles || [])
+    .map((r) => r.id ?? r.ID ?? r.role_id)
+    .filter((id) => {
+      const role = roles.value.find((r) => r.id === id);
+      return role && role.nombre !== "admin";
+    });
+
   dialogs.value.assignRoles = true;
 }
 
@@ -286,9 +336,24 @@ function closeAssignRolesDialog() {
 
 async function saveUserRoles() {
   if (!currentUser.value) return;
+
   const userId = currentUser.value.id;
-  const target = new Set(selectedUserRoleIds.value);
-  const before = new Set(currentUser.value.roles || []);
+
+  const sanitized = selectedUserRoleIds.value.filter((id) => {
+    const role = roles.value.find((r) => r.id === id);
+    return role && role.nombre !== "admin";
+  });
+
+  const target = new Set(sanitized);
+
+  const before = new Set(
+    (currentUser.value.roles || [])
+      .map((r) => r.id ?? r.ID ?? r.role_id)
+      .filter((id) => {
+        const role = roles.value.find((r) => r.id === id);
+        return role && role.nombre !== "admin";
+      }),
+  );
 
   const toAdd = [...target].filter((id) => !before.has(id));
   const toRemove = [...before].filter((id) => !target.has(id));
@@ -298,16 +363,30 @@ async function saveUserRoles() {
       ...toAdd.map((rid) => UserService.assignRole(userId, rid)),
       ...toRemove.map((rid) => UserService.removeRole(userId, rid)),
     ]);
-    currentUser.value.roles = Array.from(target);
+
+    const idx = users.value.findIndex((u) => u.id === userId);
+    if (idx !== -1) {
+      users.value[idx].roles = sanitized.map((id) =>
+        roles.value.find((r) => r.id === id),
+      );
+    }
+
+    currentUser.value.roles = sanitized;
+
     toast.add({
       severity: "success",
       summary: "Roles actualizados",
       life: 2000,
     });
+
     closeAssignRolesDialog();
   } catch (err) {
     console.error("Error saving user roles:", err);
-    toast.add({ severity: "error", summary: "Error al guardar", life: 2500 });
+    toast.add({
+      severity: "error",
+      summary: "Error al guardar",
+      life: 2500,
+    });
   }
 }
 
@@ -338,26 +417,59 @@ async function createRole() {
 
   try {
     const created = await RoleService.createRole({ ...formRole.value });
-    roles.value.push({
-      id: created.id ?? created.ID,
-      nombre: created.nombre ?? created.name ?? created.Name,
-      descripcion:
-        created.descripcion ?? created.description ?? created.Description,
+
+    const rs = await RoleService.listRoles();
+
+    roles.value = rs.map((r) => ({
+      id: r.id ?? r.ID ?? r.role_id,
+      nombre: r.nombre ?? r.Name ?? r.name,
+      descripcion: r.descripcion ?? r.Description ?? r.description,
+    }));
+
+    const entries = [];
+    for (const r of roles.value) {
+      try {
+        const rp = await RoleService.getRolePermissions(r.id);
+        const normalized = (rp || []).map(
+          (p) => p.id ?? p.ID ?? p.permission_id,
+        );
+        entries.push([r.id, new Set(normalized)]);
+      } catch {
+        entries.push([r.id, new Set()]);
+      }
+    }
+    rolePermissionsMap.value = new Map(entries);
+
+    toast.add({
+      severity: "success",
+      summary: "Rol creado",
+      life: 2000,
     });
-    rolePermissionsMap.value.set(created.id ?? created.ID, new Set());
-    toast.add({ severity: "success", summary: "Rol creado", life: 2000 });
+
     closeCreateRoleDialog();
   } catch (err) {
     console.error("Error creating role:", err);
-    toast.add({ severity: "error", summary: "Error creando rol", life: 2500 });
+    toast.add({
+      severity: "error",
+      summary: "Error creando rol",
+      life: 2500,
+    });
   }
 }
 
-const confirmDialog = ref({ title: "Confirmar", message: "", action: null });
+const confirmDialog = ref({
+  title: "Confirmar",
+  message: "",
+  action: null,
+});
 
 function closeConfirm() {
   dialogs.value.confirm = false;
-  confirmDialog.value = { title: "Confirmar", message: "", action: null };
+  confirmDialog.value = {
+    title: "Confirmar",
+    message: "",
+    action: null,
+  };
 }
 
 function askDeleteRole(role) {
@@ -375,7 +487,6 @@ function askDeleteRole(role) {
           life: 2000,
         });
       } catch (err) {
-        console.error("Error deleting role:", err);
         toast.add({
           severity: "error",
           summary: "Error al eliminar rol",

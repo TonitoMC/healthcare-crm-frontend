@@ -24,6 +24,14 @@ export const AuthService = {
     return { token, user };
   },
 
+  async changePassword(oldPassword, newPassword) {
+    const res = await api.post("/auth/change-password", {
+      old_password: oldPassword,
+      new_password: newPassword,
+    });
+    return res.data;
+  },
+
   logout() {
     localStorage.removeItem("jwt");
     delete api.defaults.headers.common["Authorization"];

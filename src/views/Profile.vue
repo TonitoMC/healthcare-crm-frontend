@@ -104,6 +104,7 @@ import { useToast } from "primevue/usetoast";
 
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from "vue-router";
+import { AuthService } from "@/services/authService";
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -111,8 +112,59 @@ const toast = useToast();
 
 const passwords = reactive({ current: "", new1: "", new2: "" });
 
+async function updatePassword() {
+  if (!passwords.current || !passwords.new1) {
+    toast.add({
+      severity: "warn",
+      summary: "Completa todos los campos",
+      life: 2500,
+    });
+    return;
+  }
+
+  if (passwords.new1 !== passwords.new2) {
+    toast.add({
+      severity: "warn",
+      summary: "Las contraseñas no coinciden",
+      life: 2500,
+    });
+    return;
+  }
+
+  try {
+    await AuthService.changePassword(passwords.current, passwords.new1);
+
+    toast.add({
+      severity: "success",
+      summary: "Contraseña actualizada",
+      detail: "Por seguridad, inicia sesión nuevamente.",
+      life: 2500,
+    });
+
+    // Clear password inputs
+    passwords.current = passwords.new1 = passwords.new2 = "";
+
+    // 👉 Auto logout after update
+    setTimeout(() => {
+      auth.logout();
+      router.push("/login");
+    }, 1200);
+  } catch (err) {
+    const msg =
+      err?.response?.data?.error ||
+      err?.response?.data?.message ||
+      "Error actualizando contraseña";
+
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: msg,
+      life: 3000,
+    });
+  }
+}
+
 function logout() {
-  // ✅ show toast BEFORE clearing user
   toast.add({
     severity: "info",
     summary: "Cierre de sesión",
@@ -123,30 +175,4 @@ function logout() {
   auth.logout();
   router.push("/login");
 }
-
-function updatePassword() {
-  if (!passwords.new1 || passwords.new1 !== passwords.new2) {
-    toast.add({
-      severity: "warn",
-      summary: "Las contraseñas no coinciden",
-      life: 2500,
-    });
-    return;
-  }
-  // Placeholder: aquí llamaríamos a un UserService.updatePassword
-  toast.add({
-    severity: "success",
-    summary: "Contraseña actualizada",
-    life: 2000,
-  });
-  passwords.current = passwords.new1 = passwords.new2 = "";
-}
 </script>
-
-<style scoped>
-.profile-container {
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-}
-</style>

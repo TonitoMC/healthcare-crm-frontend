@@ -17,6 +17,7 @@
             <span class="hidden lg:inline text-sm text-color-secondary"
               >Buscar</span
             >
+
             <InputText
               :modelValue="searchQuery"
               @update:modelValue="$emit('update:searchQuery', $event)"
@@ -24,6 +25,7 @@
               class="w-12rem md:w-16rem"
             />
           </div>
+
           <Button
             v-if="canAdmin"
             icon="pi pi-plus"
@@ -38,7 +40,7 @@
     <template #content>
       <div class="flex-1 min-h-0 overflow-hidden">
         <DataTable
-          :value="roles"
+          :value="filteredRoles"
           dataKey="id"
           scrollable
           scrollHeight="flex"
@@ -74,6 +76,7 @@
                 outlined
                 @click="$emit('view-permissions', data)"
               />
+
               <Button
                 v-if="canAdmin"
                 icon="pi pi-trash"
@@ -101,30 +104,12 @@ import Tag from "primevue/tag";
 import InputText from "primevue/inputtext";
 
 const props = defineProps({
-  roles: {
-    type: Array,
-    required: true,
-  },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-  searchQuery: {
-    type: String,
-    default: "",
-  },
-  canAdmin: {
-    type: Boolean,
-    default: false,
-  },
-  rolePermissionsMap: {
-    type: Map,
-    required: true,
-  },
-  permissions: {
-    type: Array,
-    required: true,
-  },
+  roles: { type: Array, required: true },
+  loading: { type: Boolean, default: false },
+  searchQuery: { type: String, default: "" },
+  canAdmin: { type: Boolean, default: false },
+  rolePermissionsMap: { type: Map, required: true },
+  permissions: { type: Array, required: true },
 });
 
 defineEmits([
@@ -138,4 +123,23 @@ function getPermissionNames(roleId) {
   const set = props.rolePermissionsMap.get(roleId) || new Set();
   return props.permissions.filter((p) => set.has(p.id)).map((p) => p.nombre);
 }
+
+/* ------------------------------------------------------------
+   🔍 NEW — Search also matches permission names
+------------------------------------------------------------- */
+const filteredRoles = computed(() => {
+  const q = props.searchQuery.trim().toLowerCase();
+  if (!q) return props.roles;
+
+  return props.roles.filter((role) => {
+    // search by role name
+    const nameMatch = (role.nombre || "").toLowerCase().includes(q);
+
+    // search by permission names
+    const permNames = getPermissionNames(role.id).map((p) => p.toLowerCase());
+    const permMatch = permNames.some((p) => p.includes(q));
+
+    return nameMatch || permMatch;
+  });
+});
 </script>

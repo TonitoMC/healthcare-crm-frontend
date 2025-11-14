@@ -1,34 +1,33 @@
-// src/modules/dashboard/services/reminderService.js
+import { api } from "@/services/api";
 
-let globalReminders = [
-  {
-    id: 1001,
-    text: "Verificar informes de laboratorio.",
-    priority: "Media",
-    type: "global",
-    completed: false,
-    date: "27/10/2025",
+export const ReminderService = {
+  async list() {
+    const res = await api.get("/reminders");
+
+    // backend returns an array directly
+    const data = res.data;
+
+    // defensive: return empty array if it's not an array
+    return Array.isArray(data) ? data : [];
   },
-  {
-    id: 1002,
-    text: "Revisar stock de lentes intraoculares.",
-    priority: "Alta",
-    type: "global",
-    completed: false,
-    date: "27/10/2025",
+
+  async create(payload) {
+    const res = await api.post("/reminders", payload);
+    // backend returns the created record AS-IS
+    return res.data;
   },
-];
 
-// Simulate async server calls
-export async function getGlobalReminders() {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve([...globalReminders]), 200);
-  });
-}
+  async markDone(id) {
+    const res = await api.put(`/reminders/${id}/done`);
+    return res.data; // contains fecha_completado
+  },
 
-export async function saveGlobalReminder(reminder) {
-  return new Promise((resolve) => {
-    globalReminders.push(reminder);
-    setTimeout(() => resolve([...globalReminders]), 200);
-  });
-}
+  async markUndone(id) {
+    const res = await api.put(`/reminders/${id}/undone`);
+    return res.data; // fecha_completado = null
+  },
+
+  async remove(id) {
+    return api.delete(`/reminders/${id}`);
+  },
+};
