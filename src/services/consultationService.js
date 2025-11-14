@@ -14,8 +14,27 @@ export const ConsultationService = {
 
   async getByPatient(patientId) {
     try {
-      const { data } = await api.get(`/consultations/patient/${patientId}`);
-      return data;
+      // Get LIGHT consultations
+      const { data: base } = await api.get(
+        `/consultations/patient/${patientId}`,
+      );
+
+      // Hydrate each one with details
+      const hydrated = [];
+      for (const c of base) {
+        try {
+          const { data: full } = await api.get(
+            `/consultations/${c.id}/details`,
+          );
+          hydrated.push(full);
+        } catch (err) {
+          console.error("Error hydrating consultation", c.id, err);
+          // fallback to base so UI doesn't explode
+          hydrated.push(c);
+        }
+      }
+
+      return hydrated;
     } catch (e) {
       console.error("ConsultationService.getByPatient error:", e);
       throw e;
@@ -111,5 +130,21 @@ export const ConsultationService = {
       console.error("ConsultationService.deleteAnswers error:", e);
       throw e;
     }
+  },
+
+  async createDiagnostic(consultationId, diagnostic) {
+    const { data } = await api.post(
+      `/consultations/${consultationId}/diagnostics`,
+      diagnostic,
+    );
+    return data;
+  },
+
+  async createTreatment(consultationId, diagnosticId, treatment) {
+    const { data } = await api.post(
+      `/consultations/${consultationId}/diagnostics/${diagnosticId}/treatments`,
+      treatment,
+    );
+    return data;
   },
 };

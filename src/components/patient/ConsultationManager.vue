@@ -79,46 +79,14 @@
   </Card>
 
   <!-- CONSULTATION DETAIL -->
-  <Dialog
+  <ConsultationDetailModal
     v-model:visible="showDetailDialog"
-    header="Detalle de Consulta"
-    modal
-    style="width: 600px"
-  >
-    <div v-if="currentConsultation" class="flex flex-column gap-3">
-      <div>
-        <label class="font-semibold">Motivo:</label>
-        <p>{{ currentConsultation.motivo }}</p>
-      </div>
+    :consultation="currentConsultation"
+    @show-form="openForm"
+    @view-questionnaire="openQuestionnaire"
+  />
 
-      <div>
-        <label class="font-semibold">Fecha:</label>
-        <p>{{ formatDate(currentConsultation.fecha) }}</p>
-      </div>
-
-      <div>
-        <label class="font-semibold">Estado:</label>
-        <Tag
-          :severity="currentConsultation.completada ? 'success' : 'warning'"
-          :value="currentConsultation.completada ? 'Completada' : 'Pendiente'"
-        />
-      </div>
-
-      <div
-        v-if="!currentConsultation.completada"
-        class="flex justify-content-end"
-      >
-        <Button
-          label="Marcar como Completada"
-          icon="pi pi-check"
-          severity="success"
-          @click="markAsComplete"
-        />
-      </div>
-    </div>
-  </Dialog>
-
-  <!-- SELECT QUESTIONNAIRE (with motivo text inside) -->
+  <!-- STEP 1: SELECT QUESTIONNAIRE -->
   <SelectQuestionnaireModal
     v-model:visible="showSelectModal"
     :motivo="newMotivo"
@@ -126,12 +94,25 @@
     @selected="onQuestionnaireChosen"
   />
 
-  <!-- ANSWERS MODAL -->
+  <!-- STEP 2: ANSWERS MODAL -->
   <QuestionnaireAnswersModal
     v-if="selectedQuestionnaire"
     v-model:visible="showAnswerModal"
     :questionnaire="selectedQuestionnaire"
     @save="saveAnswers"
+  />
+
+  <!-- ⭐ STEP 3: DIAGNOSTICS MODAL (ADDED) -->
+  <ConsultationDiagnosticsModal
+    v-model:visible="showDiagnosticsModal"
+    :consultationId="pendingConsultationId"
+    @saved="onDiagnosticsSaved"
+  />
+
+  <QuestionnaireAnswersModalRO
+    v-model:visible="showQModal"
+    :questionnaire="selectedQuestionnaire"
+    :answers="loadedAnswers"
   />
 </template>
 
@@ -145,8 +126,12 @@ import Dialog from "primevue/dialog";
 import Tag from "primevue/tag";
 import InputText from "primevue/inputtext";
 
+import ConsultationDetailModal from "@/components/patient/ConsultationDetailModal.vue";
 import SelectQuestionnaireModal from "@/components/patient/SelectQuestionnaireModal.vue";
 import QuestionnaireAnswersModal from "@/components/patient/QuestionnaireAnswersModal.vue";
+import QuestionnaireAnswersModalRO from "@/components/patient/QuestionnaireAnswersModalRO.vue";
+import { QuestionnaireService } from "@/services/questionnaireService";
+import ConsultationDiagnosticsModal from "@/components/patient/ConsultationDiagnosticsModal.vue";
 
 import { ConsultationService } from "@/services/consultationService";
 import { useConsultationManager } from "../../composables/useConsultationManager";
@@ -173,17 +158,48 @@ const showAnswerModal = ref(false);
 const selectedQuestionnaire = ref(null);
 const pendingConsultationId = ref(null);
 
-/* STEP 1 — Open select questionnaire modal */
+const showQModal = ref(false);
+const loadedAnswers = ref(null);
+
+async function openQuestionnaire(consultaId) {
+  // 1. Load answers for this consultation
+  const data = await ConsultationService.getAnswers(consultaId);
+  // data = { id, consulta_id, cuestionario_id, respuestas }
+
+  if (!data || !data.cuestionario_id) {
+    console.error("No cuestionario_id found in answers:", data);
+    return;
+  }
+
+  const questionnaire = await QuestionnaireService.getByID(
+    data.cuestionario_id,
+  );
+
+  // IMPORTANT: QuestionnaireService.getByID produces:
+  // {
+  //   id, nombre, version, schema, title, questions
+  // }
+
+  // 3. Assign reactive data
+  selectedQuestionnaire.value = questionnaire;
+  loadedAnswers.value = data.respuestas;
+
+  // 4. Open modal
+  showQModal.value = true;
+}
+// ⭐ NEW FOR DIAGNOSTICS
+const showDiagnosticsModal = ref(false);
+
+// STEP 1 — Open select questionnaire modal
 function beginConsultationFlow() {
   if (!newMotivo.value.trim()) return;
   showSelectModal.value = true;
 }
 
-/* STEP 2 — User selected questionnaire */
+// STEP 2 — User selected questionnaire
 async function onQuestionnaireChosen(questionnaire) {
   selectedQuestionnaire.value = questionnaire;
 
-  // Create consultation with selected questionnaire
   const { id } = await ConsultationService.create({
     paciente_id: props.patientId,
     motivo: newMotivo.value,
@@ -192,27 +208,32 @@ async function onQuestionnaireChosen(questionnaire) {
 
   pendingConsultationId.value = id;
 
-  // Open answers modal
   showAnswerModal.value = true;
-
-  // clear motive field
   newMotivo.value = "";
 }
 
-/* STEP 3 — Save answers */
+// ⭐ STEP 3 — Save Answers + Open Diagnostics Modal
 async function saveAnswers(answersJson) {
   await ConsultationService.addAnswers(
     pendingConsultationId.value,
     answersJson,
   );
 
-  await loadConsultations(props.patientId);
-
   showAnswerModal.value = false;
   selectedQuestionnaire.value = null;
+
+  // ⭐ OPEN DIAGNOSTICS FLOW
+  showDiagnosticsModal.value = true;
 }
 
-/* LIST / DETAILS */
+// ⭐ STEP 4 — After diagnostics saved
+async function onDiagnosticsSaved() {
+  showDiagnosticsModal.value = false;
+
+  await loadConsultations(props.patientId);
+}
+
+// LIST / DETAILS
 function openDetail(event) {
   currentConsultation.value = event.data;
   showDetailDialog.value = true;

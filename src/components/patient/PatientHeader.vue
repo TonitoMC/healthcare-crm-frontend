@@ -67,7 +67,9 @@
             class="w-full"
             :record="medicalRecord"
             :loading="loadingMedical"
+            :patient-id="patient?.id"
             @edit="$emit('editMedical')"
+            @saved="$emit('saved')"
           />
         </div>
       </div>
@@ -86,7 +88,7 @@ const props = defineProps({
   loadingMedical: { type: Boolean, default: false },
 });
 
-defineEmits(["edit", "editMedical"]);
+defineEmits(["edit", "editMedical", "saved"]);
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";

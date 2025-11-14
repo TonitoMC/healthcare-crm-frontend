@@ -9,7 +9,7 @@
         rounded
         size="small"
         class="p-0"
-        @click="$emit('edit')"
+        @click="showModal = true"
       />
     </div>
 
@@ -26,7 +26,7 @@
       Sin antecedentes registrados
     </div>
 
-    <!-- ✅ Simple flex layout -->
+    <!-- Data -->
     <div
       v-else
       class="flex flex-wrap justify-content-between align-content-start text-sm flex-1 min-h-0 overflow-auto w-full"
@@ -58,19 +58,127 @@
       </div>
     </div>
   </div>
+
+  <!-- ====================== MODAL ====================== -->
+  <Dialog
+    v-model:visible="showModal"
+    header="Editar Antecedentes"
+    modal
+    :style="{ width: '550px', maxWidth: '95vw' }"
+  >
+    <div class="flex flex-column gap-3">
+      <!-- MÉDICOS -->
+      <div>
+        <label class="block mb-2 text-sm">Médicos</label>
+        <Textarea
+          v-model="form.medicos"
+          class="w-full text-sm"
+          rows="2"
+          autoResize
+        />
+      </div>
+
+      <!-- FAMILIARES -->
+      <div>
+        <label class="block mb-2 text-sm">Familiares</label>
+        <Textarea
+          v-model="form.familiares"
+          class="w-full text-sm"
+          rows="2"
+          autoResize
+        />
+      </div>
+
+      <!-- OCULARES -->
+      <div>
+        <label class="block mb-2 text-sm">Oculares</label>
+        <Textarea
+          v-model="form.oculares"
+          class="w-full text-sm"
+          rows="2"
+          autoResize
+        />
+      </div>
+
+      <!-- ALÉRGICOS -->
+      <div>
+        <label class="block mb-2 text-sm">Alérgicos</label>
+        <Textarea
+          v-model="form.alergicos"
+          class="w-full text-sm"
+          rows="2"
+          autoResize
+        />
+      </div>
+
+      <!-- OTROS -->
+      <div>
+        <label class="block mb-2 text-sm">Otros</label>
+        <Textarea
+          v-model="form.otros"
+          class="w-full text-sm"
+          rows="2"
+          autoResize
+        />
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="flex justify-content-end gap-2 mt-3">
+        <Button
+          label="Cancelar"
+          text
+          severity="secondary"
+          class="text-sm"
+          @click="showModal = false"
+        />
+
+        <Button
+          label="Guardar"
+          class="text-sm"
+          severity="success"
+          :disabled="!isValid"
+          @click="save"
+        />
+      </div>
+    </div>
+  </Dialog>
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed, watch } from "vue";
 import Button from "primevue/button";
+import Dialog from "primevue/dialog";
+import Textarea from "primevue/textarea";
+import { MedicalRecordService } from "@/services/medicalRecordService.js";
 
 const props = defineProps({
   record: { type: Object, default: () => ({}) },
   loading: { type: Boolean, default: false },
+
+  patientId: { type: Number, required: true },
 });
 
-defineEmits(["edit"]);
+const emit = defineEmits(["saved"]);
 
+const showModal = ref(false);
+
+const form = ref({
+  medicos: "",
+  familiares: "",
+  oculares: "",
+  alergicos: "",
+  otros: "",
+});
+
+// Populate modal when opened
+watch(
+  () => showModal.value,
+  (v) => {
+    if (v) form.value = { ...props.record };
+  },
+);
+
+// For showing/hiding card content
 const hasAnyData = computed(() => {
   const r = props.record || {};
   const filled = (v) => typeof v === "number" || (v && String(v).trim() !== "");
@@ -82,6 +190,29 @@ const hasAnyData = computed(() => {
     filled(r.otros)
   );
 });
+
+// Validation
+const isValid = computed(() => {
+  const f = form.value;
+  return (
+    f.medicos?.trim() &&
+    f.familiares?.trim() &&
+    f.oculares?.trim() &&
+    f.alergicos?.trim() &&
+    f.otros?.trim()
+  );
+});
+
+// Save record
+async function save() {
+  try {
+    await MedicalRecordService.update(props.patientId, form.value);
+    emit("saved"); // parent reloads data
+    showModal.value = false;
+  } catch (e) {
+    console.error("Error saving antecedentes:", e);
+  }
+}
 </script>
 
 <style scoped>

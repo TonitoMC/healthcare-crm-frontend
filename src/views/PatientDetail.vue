@@ -18,6 +18,7 @@
       :medical-record="medicalRecord"
       @edit="handleEdit"
       @viewHistory="handleViewHistory"
+      @saved="onMedicalRecordSaved"
     />
 
     <div class="flex flex-column md:flex-row gap-3 mt-2 flex-1 min-h-0">
@@ -164,6 +165,10 @@ async function savePatient() {
 onMounted(async () => {
   await loadPatient(patientId.value);
 });
+
+async function onMedicalRecordSaved() {
+  await loadPatient(patientId.value);
+}
 </script>
 
 <style scoped>

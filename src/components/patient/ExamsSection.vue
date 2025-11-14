@@ -83,7 +83,7 @@
                     text
                     size="small"
                     class="text-primary"
-                    @click="openUploadDialog(data)"
+                    @click="openUploadModal(data)"
                   />
                 </template>
 
@@ -105,25 +105,14 @@
     </template>
   </Card>
 
-  <!-- 🟡 Upload Dialog -->
-  <Dialog
-    v-model:visible="showUploadDialog"
-    header="Subir PDF"
-    modal
-    style="width: 400px"
-  >
-    <div class="flex flex-column gap-3">
-      <FileUpload
-        mode="basic"
-        accept="application/pdf"
-        :maxFileSize="10000000"
-        @select="handleFileSelect"
-      />
-      <Button label="Subir" :disabled="!selectedFile" @click="uploadFile" />
-    </div>
-  </Dialog>
+  <!-- 🟡 Upload Exam Modal (SmallModal) -->
+  <UploadExamModal
+    v-model="showUploadModal"
+    :exam="currentExamForUpload"
+    @uploaded="handleUploaded"
+  />
 
-  <!-- ✅ Confirm New Exam Modal -->
+  <!-- 🚫 New Exam Dialog -->
   <Dialog
     v-model:visible="showNewExamDialog"
     modal
@@ -228,7 +217,6 @@
       </div>
     </template>
 
-    <!-- Content -->
     <div class="pt-0 pb-4 flex flex-column gap-4">
       <div
         class="surface-card border-round-lg shadow-1 border-1 surface-border p-4 flex flex-column gap-3"
@@ -262,7 +250,6 @@
       </Message>
     </div>
 
-    <!-- Footer -->
     <template #footer>
       <div
         class="flex justify-content-end align-items-center w-full gap-2 px-3 py-2 border-top-1 surface-border"
@@ -298,10 +285,12 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
-import FileUpload from "primevue/fileupload";
 import Message from "primevue/message";
 import { ExamService } from "@/services/examService";
 import { useToast } from "primevue/usetoast";
+
+/* ⭐ NEW MODAL IMPORT */
+import UploadExamModal from "@components/dashboard/UploadExamModal.vue";
 
 const props = defineProps({
   patientId: { type: Number, required: true },
@@ -309,33 +298,85 @@ const props = defineProps({
   patientName: { type: String, default: "Paciente" },
 });
 
-const showUploadDialog = ref(false);
-const showNewExamDialog = ref(false);
-const showCancelDialog = ref(false);
-
-const creatingExam = ref(false);
-const deleting = ref(false);
-const cancelTarget = ref(null);
-
-const newExamTipo = ref("");
-const selectedFile = ref(null);
-const currentExam = ref(null);
-const exams = ref([...props.exams]);
 const toast = useToast();
 
-const today = computed(() => {
-  const d = new Date();
-  return d.toLocaleDateString("es-GT", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-});
+const exams = ref([...props.exams]);
+
+/* Upload Modal */
+const showUploadModal = ref(false);
+const currentExamForUpload = ref(null);
+
+function openUploadModal(exam) {
+  currentExamForUpload.value = {
+    ...exam,
+    examType: exam.tipo,
+    patient: props.patientName,
+  };
+  showUploadModal.value = true;
+}
+
+async function handleUploaded({ exam, file }) {
+  try {
+    await ExamService.uploadPdf(exam.id, file);
+    await loadExams();
+    toast.add({
+      severity: "success",
+      summary: "PDF cargado",
+      detail: "El documento del examen fue guardado correctamente.",
+      life: 2500,
+    });
+  } catch (err) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "No se pudo subir el archivo",
+      life: 2500,
+    });
+  }
+}
+
+/* New Exam */
+const newExamTipo = ref("");
+const showNewExamDialog = ref(false);
+const creatingExam = ref(false);
 
 function openNewExamDialog() {
   if (!newExamTipo.value.trim()) return;
   showNewExamDialog.value = true;
 }
+
+async function createExam() {
+  creatingExam.value = true;
+  try {
+    await ExamService.create({
+      paciente_id: props.patientId,
+      tipo: newExamTipo.value.trim(),
+    });
+    await loadExams();
+    toast.add({
+      severity: "success",
+      summary: "Examen creado",
+      detail: `Nuevo examen creado para ${props.patientName}.`,
+      life: 2500,
+    });
+    newExamTipo.value = "";
+    showNewExamDialog.value = false;
+  } catch (error) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "No se pudo crear el examen.",
+      life: 2500,
+    });
+  } finally {
+    creatingExam.value = false;
+  }
+}
+
+/* Delete Exam */
+const showCancelDialog = ref(false);
+const cancelTarget = ref(null);
+const deleting = ref(false);
 
 function openCancelDialog(exam) {
   cancelTarget.value = exam;
@@ -349,151 +390,65 @@ async function confirmCancelExam() {
     await ExamService.delete(cancelTarget.value.id);
     toast.add({
       severity: "warn",
-      summary: "Examen cancelado",
+      summary: "Examen eliminado",
       detail: "El examen fue eliminado correctamente.",
-      life: 3000,
+      life: 2500,
     });
     await loadExams();
     showCancelDialog.value = false;
-  } catch (error) {
-    console.error("Error canceling exam:", error);
-    toast.add({
-      severity: "error",
-      summary: "Error al cancelar",
-      detail: "No se pudo cancelar el examen.",
-      life: 3000,
-    });
   } finally {
     deleting.value = false;
   }
 }
 
-async function createExam() {
-  if (!newExamTipo.value.trim()) {
-    toast.add({
-      severity: "warn",
-      summary: "Campo vacío",
-      detail: "Debe ingresar un tipo de examen antes de confirmar.",
-      life: 2500,
-    });
-    return;
-  }
-
-  try {
-    creatingExam.value = true;
-    await ExamService.create({
-      paciente_id: props.patientId,
-      tipo: newExamTipo.value.trim(),
-    });
-    await loadExams();
-    toast.add({
-      severity: "success",
-      summary: "Examen creado",
-      detail: `Nuevo examen para ${props.patientName} creado correctamente.`,
-      life: 3000,
-    });
-    newExamTipo.value = "";
-    showNewExamDialog.value = false;
-  } catch (error) {
-    console.error("Error creating exam:", error);
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: "No se pudo crear el examen",
-      life: 3000,
-    });
-  } finally {
-    creatingExam.value = false;
-  }
-}
-
+/* Reload list */
 async function loadExams() {
-  try {
-    const data = await ExamService.getByPatient(props.patientId);
-    exams.value = data;
-  } catch (error) {
-    console.error("Error loading exams:", error);
-  }
+  const data = await ExamService.getByPatient(props.patientId);
+  exams.value = data;
 }
 
-function openUploadDialog(exam) {
-  currentExam.value = exam;
-  showUploadDialog.value = true;
-}
-
-function handleFileSelect(event) {
-  selectedFile.value = event.files[0];
-}
-
-async function uploadFile() {
-  if (!selectedFile.value || !currentExam.value) return;
-  try {
-    await ExamService.uploadPdf(currentExam.value.id, selectedFile.value);
-    await loadExams();
-    showUploadDialog.value = false;
-    selectedFile.value = null;
-  } catch (error) {
-    console.error("Error uploading file:", error);
-  }
-}
-
+/* PDF View + Download */
 async function viewPdf(exam) {
-  try {
-    const savedAuth = localStorage.getItem("jwt");
-    if (!savedAuth) return console.error("No authentication token found");
-    const { token } = JSON.parse(savedAuth);
+  const savedAuth = localStorage.getItem("jwt");
+  if (!savedAuth) return console.error("No token");
 
-    const response = await fetch(ExamService.getDownloadUrl(exam.id), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!response.ok) throw new Error("Failed to download PDF");
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const tab = window.open("", "_blank");
-    tab.document.title = exam.tipo || "Examen";
-    const safeName = (exam.tipo || `examen-${exam.id}`)
-      .replace(/\s+/g, "_")
-      .replace(/[^\w_-]/g, "");
-
-    tab.document.body.innerHTML = `
-      <embed src="${url}" type="application/pdf" width="100%" height="100%">
-    `;
-    tab.history.replaceState({}, safeName, `${safeName}.pdf`);
-    setTimeout(() => window.URL.revokeObjectURL(url), 15000);
-  } catch (error) {
-    console.error("Error viewing PDF:", error);
-  }
+  const { token } = JSON.parse(savedAuth);
+  const res = await fetch(ExamService.getDownloadUrl(exam.id), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
 }
 
 async function downloadPdf(exam) {
-  try {
-    const savedAuth = localStorage.getItem("jwt");
-    if (!savedAuth) return console.error("No authentication token found");
-    const { token } = JSON.parse(savedAuth);
+  const savedAuth = localStorage.getItem("jwt");
+  if (!savedAuth) return;
 
-    const response = await fetch(ExamService.getDownloadUrl(exam.id), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  const { token } = JSON.parse(savedAuth);
+  const res = await fetch(ExamService.getDownloadUrl(exam.id), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
 
-    if (!response.ok) throw new Error("Failed to download PDF");
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${exam.tipo || "examen"}.pdf`;
+  link.click();
 
-    const safeName = (exam.tipo || `examen-${exam.id}`)
-      .replace(/\s+/g, "_")
-      .replace(/[^\w_-]/g, "");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${safeName}.pdf`;
-    link.click();
-
-    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
-  } catch (error) {
-    console.error("Error downloading PDF:", error);
-  }
+  setTimeout(() => URL.revokeObjectURL(url), 8000);
 }
+
+/* Date */
+const today = computed(() => {
+  const d = new Date();
+  return d.toLocaleDateString("es-GT", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+});
 </script>
 
 <style scoped>

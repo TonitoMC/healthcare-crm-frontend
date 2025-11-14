@@ -88,14 +88,6 @@ const onFileSelect = (event) => {
 const onSubmit = () => {
   if (!file.value) return;
 
-  // Simulate upload success
-  toast.add({
-    severity: "success",
-    summary: "Archivo subido correctamente",
-    detail: fileName.value,
-    life: 3000,
-  });
-
   emit("uploaded", { exam: props.exam, file: file.value });
   visible.value = false;
   file.value = null;

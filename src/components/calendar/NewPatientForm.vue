@@ -142,8 +142,8 @@ const emit = defineEmits(["update:form", "update:date", "update:duration"]);
 const toast = useToast();
 
 const sexOptions = [
-  { label: "Masculino", value: "M" },
-  { label: "Femenino", value: "F" },
+  { label: "Masculino", value: "Masculino" },
+  { label: "Femenino", value: "Femenino" },
 ];
 
 const localForm = computed({
