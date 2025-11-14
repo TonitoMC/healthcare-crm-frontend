@@ -8,16 +8,25 @@
         <div
           class="flex flex-column flex-1 min-h-0 shadow-1 border-round-lg surface-card overflow-y-auto"
         >
-          <SingleDayAppointments class="flex-1 min-h-0" />
+          <SingleDayAppointments
+            class="flex-1 min-h-0"
+            data-testid="single-day-appointments"
+          />
         </div>
       </div>
 
       <div class="flex flex-column flex-1 min-h-0 gap-3">
         <!-- Exams -->
-        <PendingExams class="flex-1 min-h-0 overflow-hidden" />
+        <PendingExams
+          class="flex-1 min-h-0 overflow-hidden"
+          data-testid="pending-exams"
+        />
 
         <!-- Reminders (Card lives inside component) -->
-        <Reminders class="flex-1 min-h-0 overflow-hidden" />
+        <Reminders
+          class="flex-1 min-h-0 overflow-hidden"
+          data-testid="reminders"
+        />
       </div>
     </div>
   </div>
